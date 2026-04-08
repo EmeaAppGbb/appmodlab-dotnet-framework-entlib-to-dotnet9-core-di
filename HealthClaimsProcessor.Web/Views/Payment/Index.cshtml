@@ -1,0 +1,83 @@
+@model IEnumerable<Payment>
+@{
+    ViewBag.Title = "Payments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-credit-card"></i> Payments</h2>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Payment Number</th>
+                <th>Claim Number</th>
+                <th class="text-end">Amount</th>
+                <th>Payment Date</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var payment in Model)
+                {
+                    <tr>
+                        <td>
+                            <a href="@Url.Action("Details", new { id = payment.PaymentId })">
+                                @Html.DisplayFor(modelItem => payment.PaymentNumber)
+                            </a>
+                        </td>
+                        <td>
+                            @if (payment.Claim != null)
+                            {
+                                <a href="@Url.Action("Details", "Claim", new { id = payment.ClaimId })">
+                                    @payment.Claim.ClaimNumber
+                                </a>
+                            }
+                        </td>
+                        <td class="text-end">@payment.PaymentAmount.ToString("C")</td>
+                        <td>@payment.PaymentDate.ToString("MM/dd/yyyy")</td>
+                        <td>@Html.DisplayFor(modelItem => payment.PaymentMethod)</td>
+                        <td>
+                            @{
+                                string paymentBadge;
+                                switch (payment.PaymentStatus)
+                                {
+                                    case "Cleared":
+                                        paymentBadge = "bg-success";
+                                        break;
+                                    case "Voided":
+                                    case "Returned":
+                                        paymentBadge = "bg-danger";
+                                        break;
+                                    case "Pending":
+                                        paymentBadge = "bg-warning text-dark";
+                                        break;
+                                    default:
+                                        paymentBadge = "bg-info text-dark";
+                                        break;
+                                }
+                            }
+                            <span class="badge @paymentBadge">@payment.PaymentStatus</span>
+                        </td>
+                        <td>
+                            <a href="@Url.Action("Details", new { id = payment.PaymentId })" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No payments found.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

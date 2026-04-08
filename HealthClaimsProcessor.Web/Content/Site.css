@@ -1,0 +1,62 @@
+body {
+    padding-top: 70px;
+    padding-bottom: 20px;
+}
+
+.navbar {
+    min-height: 50px;
+}
+
+.body-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.table {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.btn {
+    margin-right: 5px;
+}
+
+.card {
+    margin-bottom: 20px;
+}
+
+.claim-line-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.status-badge {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.status-draft { background-color: #6c757d; }
+.status-submitted { background-color: #0d6efd; }
+.status-underreview { background-color: #0dcaf0; }
+.status-approved { background-color: #198754; }
+.status-denied { background-color: #dc3545; }
+.status-paid { background-color: #20c997; }
+
+.error-details {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c2c7;
+    border-radius: 5px;
+}
+
+footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e5e5;
+}

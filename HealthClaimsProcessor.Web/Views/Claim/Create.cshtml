@@ -1,0 +1,173 @@
+@model Claim
+@{
+    ViewBag.Title = "Create Claim";
+}
+
+<h2><i class="bi bi-plus-lg"></i> Create New Claim</h2>
+<hr />
+
+@using (Html.BeginForm("Create", "Claim", FormMethod.Post, new { id = "claimForm" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Claim Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.ClaimNumber, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.ClaimNumber, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.ClaimNumber, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.PatientId, "Patient", new { @class = "form-label" })
+                        @Html.DropDownList("PatientId", null, "-- Select Patient --", new { @class = "form-select" })
+                        @Html.ValidationMessageFor(model => model.PatientId, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.ProviderId, "Provider", new { @class = "form-label" })
+                        @Html.DropDownList("ProviderId", null, "-- Select Provider --", new { @class = "form-select" })
+                        @Html.ValidationMessageFor(model => model.ProviderId, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.ServiceDateFrom, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.ServiceDateFrom, "{0:yyyy-MM-dd}", new { @class = "form-control", type = "date" })
+                        @Html.ValidationMessageFor(model => model.ServiceDateFrom, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.ServiceDateTo, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.ServiceDateTo, "{0:yyyy-MM-dd}", new { @class = "form-control", type = "date" })
+                        @Html.ValidationMessageFor(model => model.ServiceDateTo, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.PlaceOfService, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.PlaceOfService, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.PlaceOfService, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.PriorAuthorizationNumber, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.PriorAuthorizationNumber, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.PriorAuthorizationNumber, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.ReferringProviderNPI, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.ReferringProviderNPI, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.ReferringProviderNPI, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        @Html.LabelFor(model => model.DiagnosisPointer, new { @class = "form-label" })
+                        @Html.TextBoxFor(model => model.DiagnosisPointer, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(model => model.DiagnosisPointer, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4 pt-2">
+                        @Html.CheckBoxFor(model => model.IsAccidentRelated, new { @class = "form-check-input" })
+                        @Html.LabelFor(model => model.IsAccidentRelated, new { @class = "form-check-label" })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Line Items</h5>
+            <button type="button" id="addLineItem" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-lg"></i> Add Line Item
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0" id="lineItemsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Service Date</th>
+                            <th>CPT Code</th>
+                            <th>CPT Description</th>
+                            <th>ICD-10 Code</th>
+                            <th>ICD-10 Description</th>
+                            <th>Qty</th>
+                            <th>Unit Charge</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lineItemsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-lg"></i> Submit Claim
+        </button>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-lg ms-2">Cancel</a>
+    </div>
+}
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        $(function () {
+            var lineIndex = 0;
+
+            function addLineItemRow() {
+                var prefix = 'LineItems[' + lineIndex + '].';
+                var row = '<tr id="lineRow_' + lineIndex + '">' +
+                    '<td>' + (lineIndex + 1) + '<input type="hidden" name="' + prefix + 'LineNumber" value="' + (lineIndex + 1) + '" /></td>' +
+                    '<td><input type="date" name="' + prefix + 'ServiceDate" class="form-control form-control-sm" required /></td>' +
+                    '<td><input type="text" name="' + prefix + 'CPTCode" class="form-control form-control-sm" maxlength="5" placeholder="00000" required /></td>' +
+                    '<td><input type="text" name="' + prefix + 'CPTDescription" class="form-control form-control-sm" /></td>' +
+                    '<td><input type="text" name="' + prefix + 'ICD10Code" class="form-control form-control-sm" placeholder="A00.0" required /></td>' +
+                    '<td><input type="text" name="' + prefix + 'ICD10Description" class="form-control form-control-sm" /></td>' +
+                    '<td><input type="number" name="' + prefix + 'Quantity" class="form-control form-control-sm" value="1" min="1" max="99" style="width:70px" required /></td>' +
+                    '<td><input type="number" name="' + prefix + 'UnitCharge" class="form-control form-control-sm" step="0.01" min="0.01" placeholder="0.00" style="width:110px" required /></td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger remove-line" data-index="' + lineIndex + '"><i class="bi bi-trash"></i></button></td>' +
+                    '</tr>';
+                $('#lineItemsBody').append(row);
+                lineIndex++;
+            }
+
+            $('#addLineItem').click(function () {
+                addLineItemRow();
+            });
+
+            $(document).on('click', '.remove-line', function () {
+                var idx = $(this).data('index');
+                $('#lineRow_' + idx).remove();
+            });
+
+            // Add one line item by default
+            addLineItemRow();
+        });
+    </script>
+}

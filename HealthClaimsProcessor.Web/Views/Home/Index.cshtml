@@ -1,0 +1,111 @@
+@{
+    ViewBag.Title = "Home";
+}
+
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">
+        <i class="bi bi-hospital text-primary"></i> Health Claims Processor
+    </h1>
+    <div class="col-lg-8 mx-auto">
+        <p class="lead mb-4">@ViewBag.Message</p>
+        <p class="text-muted">
+            A comprehensive system for managing health insurance claims processing, patient records,
+            provider information, and payment tracking.
+        </p>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="card h-100 text-center border-primary">
+            <div class="card-body">
+                <i class="bi bi-people display-4 text-primary"></i>
+                <h5 class="card-title mt-3">Patients</h5>
+                <p class="card-text text-muted">
+                    Manage patient demographics, insurance policy details, and contact information.
+                </p>
+                <a href="@Url.Action("Index", "Patient")" class="btn btn-outline-primary">
+                    View Patients
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 text-center border-success">
+            <div class="card-body">
+                <i class="bi bi-building display-4 text-success"></i>
+                <h5 class="card-title mt-3">Providers</h5>
+                <p class="card-text text-muted">
+                    Track healthcare providers, NPI numbers, specialties, and credentialing status.
+                </p>
+                <a href="@Url.Action("Index", "Provider")" class="btn btn-outline-success">
+                    View Providers
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 text-center border-warning">
+            <div class="card-body">
+                <i class="bi bi-file-earmark-medical display-4 text-warning"></i>
+                <h5 class="card-title mt-3">Claims</h5>
+                <p class="card-text text-muted">
+                    Submit, review, and adjudicate health insurance claims with line-item detail.
+                </p>
+                <a href="@Url.Action("Index", "Claim")" class="btn btn-outline-warning">
+                    View Claims
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 text-center border-info">
+            <div class="card-body">
+                <i class="bi bi-credit-card display-4 text-info"></i>
+                <h5 class="card-title mt-3">Payments</h5>
+                <p class="card-text text-muted">
+                    Process and track claim payments, remittance advice, and payment reconciliation.
+                </p>
+                <a href="@Url.Action("Index", "Payment")" class="btn btn-outline-info">
+                    View Payments
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> System Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Key Features</h6>
+                        <ul>
+                            <li>End-to-end claims lifecycle management</li>
+                            <li>CPT and ICD-10 code tracking per line item</li>
+                            <li>Automated claim adjudication workflow</li>
+                            <li>Payment processing with EFT and check support</li>
+                            <li>Comprehensive audit logging</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Claim Workflow</h6>
+                        <ol>
+                            <li><strong>Submit</strong> &ndash; Create and submit a claim with service details</li>
+                            <li><strong>Review</strong> &ndash; Claims undergo review and validation</li>
+                            <li><strong>Adjudicate</strong> &ndash; Approve, partially approve, or deny the claim</li>
+                            <li><strong>Pay</strong> &ndash; Process payment for approved claims</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

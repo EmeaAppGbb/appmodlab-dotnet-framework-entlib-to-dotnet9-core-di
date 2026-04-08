@@ -1,0 +1,76 @@
+@model IEnumerable<Provider>
+@{
+    ViewBag.Title = "Providers";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-building"></i> Providers</h2>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> New Provider
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>NPI</th>
+                <th>Specialty</th>
+                <th>Phone</th>
+                <th>Network</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var provider in Model)
+                {
+                    <tr>
+                        <td>
+                            <a href="@Url.Action("Details", new { id = provider.ProviderId })">
+                                @Html.DisplayFor(modelItem => provider.Name)
+                            </a>
+                        </td>
+                        <td><code>@Html.DisplayFor(modelItem => provider.NPI)</code></td>
+                        <td>@Html.DisplayFor(modelItem => provider.Specialty)</td>
+                        <td>@Html.DisplayFor(modelItem => provider.Phone)</td>
+                        <td>
+                            @if (provider.IsNetworkProvider)
+                            {
+                                <span class="badge bg-success">In-Network</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Out-of-Network</span>
+                            }
+                        </td>
+                        <td>
+                            @if (provider.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="@Url.Action("Details", new { id = provider.ProviderId })" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No providers found.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

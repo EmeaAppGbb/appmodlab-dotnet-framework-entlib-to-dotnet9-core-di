@@ -1,0 +1,214 @@
+@model Claim
+@{
+    ViewBag.Title = "Claim Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-file-earmark-medical"></i> Claim: @Model.ClaimNumber</h2>
+    <div>
+        @if (Model.Status == ClaimStatus.Submitted || Model.Status == ClaimStatus.UnderReview)
+        {
+            <a href="@Url.Action("Adjudicate", new { id = Model.ClaimId })" class="btn btn-warning me-2">
+                <i class="bi bi-check2-square"></i> Adjudicate
+            </a>
+        }
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+@{
+    string statusBadge;
+    switch (Model.Status)
+    {
+        case ClaimStatus.Approved:
+        case ClaimStatus.Paid:
+            statusBadge = "bg-success";
+            break;
+        case ClaimStatus.Denied:
+        case ClaimStatus.Cancelled:
+            statusBadge = "bg-danger";
+            break;
+        case ClaimStatus.UnderReview:
+        case ClaimStatus.PendingInformation:
+            statusBadge = "bg-warning text-dark";
+            break;
+        case ClaimStatus.Submitted:
+            statusBadge = "bg-info text-dark";
+            break;
+        case ClaimStatus.PartiallyApproved:
+            statusBadge = "bg-warning";
+            break;
+        default:
+            statusBadge = "bg-secondary";
+            break;
+    }
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Claim Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Claim Number</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.ClaimNumber)</dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7"><span class="badge @statusBadge">@Model.Status</span></dd>
+
+                    <dt class="col-sm-5">Service Date From</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.ServiceDateFrom)</dd>
+
+                    <dt class="col-sm-5">Service Date To</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.ServiceDateTo)</dd>
+
+                    <dt class="col-sm-5">Submitted Date</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.SubmittedDate)</dd>
+
+                    <dt class="col-sm-5">Place of Service</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.PlaceOfService)</dd>
+
+                    <dt class="col-sm-5">Prior Auth #</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.PriorAuthorizationNumber)</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Patient &amp; Provider</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Patient</dt>
+                    <dd class="col-sm-7">
+                        @if (Model.Patient != null)
+                        {
+                            <a href="@Url.Action("Details", "Patient", new { id = Model.PatientId })">
+                                @Model.Patient.LastName, @Model.Patient.FirstName
+                            </a>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5">Provider</dt>
+                    <dd class="col-sm-7">
+                        @if (Model.Provider != null)
+                        {
+                            <a href="@Url.Action("Details", "Provider", new { id = Model.ProviderId })">
+                                @Model.Provider.Name
+                            </a>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5">Referring NPI</dt>
+                    <dd class="col-sm-7">@Html.DisplayFor(model => model.ReferringProviderNPI)</dd>
+
+                    <dt class="col-sm-5">Total Charge</dt>
+                    <dd class="col-sm-7"><strong>@Model.TotalChargeAmount.ToString("C")</strong></dd>
+
+                    <dt class="col-sm-5">Approved Amount</dt>
+                    <dd class="col-sm-7">@Model.TotalApprovedAmount.ToString("C")</dd>
+
+                    <dt class="col-sm-5">Patient Responsibility</dt>
+                    <dd class="col-sm-7">@Model.TotalPatientResponsibility.ToString("C")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.AdjudicationNotes))
+{
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Adjudication Notes</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-1">@Model.AdjudicationNotes</p>
+            <small class="text-muted">
+                Processed by @Model.ProcessedBy
+                @if (Model.ProcessedDate.HasValue)
+                {
+                    @: on @Model.ProcessedDate.Value.ToString("g")
+                }
+            </small>
+        </div>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Line Items</h5>
+        <span class="badge bg-primary">@(Model.LineItems != null ? Model.LineItems.Count : 0) items</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Service Date</th>
+                        <th>CPT Code</th>
+                        <th>CPT Description</th>
+                        <th>ICD-10 Code</th>
+                        <th>ICD-10 Description</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Unit Charge</th>
+                        <th class="text-end">Total Charge</th>
+                        <th class="text-end">Approved</th>
+                        <th>Denial Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.LineItems != null && Model.LineItems.Any())
+                    {
+                        foreach (var item in Model.LineItems.OrderBy(li => li.LineNumber))
+                        {
+                            <tr>
+                                <td>@item.LineNumber</td>
+                                <td>@item.ServiceDate.ToString("MM/dd/yyyy")</td>
+                                <td><code>@item.CPTCode</code></td>
+                                <td>@item.CPTDescription</td>
+                                <td><code>@item.ICD10Code</code></td>
+                                <td>@item.ICD10Description</td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">@item.UnitCharge.ToString("C")</td>
+                                <td class="text-end">@item.TotalCharge.ToString("C")</td>
+                                <td class="text-end">@item.ApprovedAmount.ToString("C")</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.DenialReason))
+                                    {
+                                        <span class="text-danger">@item.DenialReason</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="11" class="text-center text-muted py-3">No line items.</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.LineItems != null && Model.LineItems.Any())
+                {
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td colspan="8" class="text-end">Totals:</td>
+                            <td class="text-end">@Model.TotalChargeAmount.ToString("C")</td>
+                            <td class="text-end">@Model.TotalApprovedAmount.ToString("C")</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
