@@ -18,7 +18,7 @@ namespace HealthClaimsProcessor.Core.Services
         public ClaimService(ClaimRepository claimRepository)
         {
             _claimRepository = claimRepository;
-            _exceptionManager = EnterpriseLibraryContainer.Current.GetInstance<ExceptionManager>();
+            _exceptionManager = new ExceptionPolicyFactory(new SystemConfigurationSource()).CreateManager();
         }
 
         public List<Claim> GetAllClaims()
@@ -109,7 +109,8 @@ namespace HealthClaimsProcessor.Core.Services
 
             try
             {
-                var validationResults = Validation.Validate(claim);
+                var validator = ValidationFactory.CreateValidator<Claim>();
+                var validationResults = validator.Validate(claim);
                 if (!validationResults.IsValid)
                 {
                     var messages = new List<string>();

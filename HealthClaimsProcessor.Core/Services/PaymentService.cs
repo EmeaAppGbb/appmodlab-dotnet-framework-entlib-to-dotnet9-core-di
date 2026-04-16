@@ -19,7 +19,7 @@ namespace HealthClaimsProcessor.Core.Services
         {
             _paymentRepository = paymentRepository;
             _claimRepository = claimRepository;
-            _exceptionManager = EnterpriseLibraryContainer.Current.GetInstance<ExceptionManager>();
+            _exceptionManager = new ExceptionPolicyFactory(new SystemConfigurationSource()).CreateManager();
         }
 
         public List<Payment> GetAllPayments()
@@ -78,7 +78,8 @@ namespace HealthClaimsProcessor.Core.Services
 
             try
             {
-                var validationResults = Validation.Validate(payment);
+                var validator = ValidationFactory.CreateValidator<Payment>();
+                var validationResults = validator.Validate(payment);
                 if (!validationResults.IsValid)
                 {
                     var messages = new List<string>();

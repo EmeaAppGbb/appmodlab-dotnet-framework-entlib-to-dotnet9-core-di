@@ -17,7 +17,8 @@ namespace HealthClaimsProcessor.Core.Services
         public PatientService(PatientRepository patientRepository)
         {
             _patientRepository = patientRepository;
-            _exceptionManager = EnterpriseLibraryContainer.Current.GetInstance<ExceptionManager>();
+            var factory = new ExceptionPolicyFactory(new SystemConfigurationSource());
+            _exceptionManager = factory.CreateManager();
         }
 
         public List<Patient> GetAllPatients()
@@ -76,7 +77,8 @@ namespace HealthClaimsProcessor.Core.Services
 
             try
             {
-                var validationResults = Validation.Validate(patient);
+                var validator = ValidationFactory.CreateValidator<Patient>();
+                var validationResults = validator.Validate(patient);
                 if (!validationResults.IsValid)
                 {
                     var messages = new List<string>();
@@ -123,7 +125,8 @@ namespace HealthClaimsProcessor.Core.Services
 
             try
             {
-                var validationResults = Validation.Validate(patient);
+                var updateValidator = ValidationFactory.CreateValidator<Patient>();
+                var validationResults = updateValidator.Validate(patient);
                 if (!validationResults.IsValid)
                 {
                     var messages = new List<string>();
@@ -136,7 +139,7 @@ namespace HealthClaimsProcessor.Core.Services
                     throw new ValidationException(errorMessage);
                 }
 
-                patient.ModifiedDate = DateTime.Now;
+                patient.ModifiedDate= DateTime.Now;
 
                 _patientRepository.UpdatePatient(patient);
                 LoggingHelper.LogInfo($"Patient updated successfully with ID: {patient.PatientId}", "Service");

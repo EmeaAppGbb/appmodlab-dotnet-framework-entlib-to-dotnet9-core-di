@@ -3,7 +3,7 @@ using Microsoft.Practices.EnterpriseLibrary.Common.Configuration;
 using Microsoft.Practices.EnterpriseLibrary.ExceptionHandling;
 using Unity;
 using Unity.Lifetime;
-using Unity.Mvc5;
+using Unity.AspNet.Mvc;
 using HealthClaimsProcessor.Core.DataAccess;
 using HealthClaimsProcessor.Core.Services;
 

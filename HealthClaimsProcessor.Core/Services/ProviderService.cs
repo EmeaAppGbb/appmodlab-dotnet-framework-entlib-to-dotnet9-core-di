@@ -17,7 +17,7 @@ namespace HealthClaimsProcessor.Core.Services
         public ProviderService(ProviderRepository providerRepository)
         {
             _providerRepository = providerRepository;
-            _exceptionManager = EnterpriseLibraryContainer.Current.GetInstance<ExceptionManager>();
+            _exceptionManager = new ExceptionPolicyFactory(new SystemConfigurationSource()).CreateManager();
         }
 
         public List<Provider> GetAllProviders()
@@ -76,7 +76,8 @@ namespace HealthClaimsProcessor.Core.Services
 
             try
             {
-                var validationResults = Validation.Validate(provider);
+                var validator = ValidationFactory.CreateValidator<Provider>();
+                var validationResults = validator.Validate(provider);
                 if (!validationResults.IsValid)
                 {
                     var messages = new List<string>();

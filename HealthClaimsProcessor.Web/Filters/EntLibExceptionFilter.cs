@@ -11,7 +11,8 @@ namespace HealthClaimsProcessor.Web.Filters
 
         public EntLibExceptionFilter()
         {
-            _exceptionManager = EnterpriseLibraryContainer.Current.GetInstance<ExceptionManager>();
+            var factory = new ExceptionPolicyFactory(new Microsoft.Practices.EnterpriseLibrary.Common.Configuration.SystemConfigurationSource());
+            _exceptionManager = factory.CreateManager();
         }
 
         public void OnException(ExceptionContext filterContext)
