@@ -1,0 +1,75 @@
+# Step 02: Map EntLib Blocks to Modern .NET 9 Equivalents
+
+## Migration Mapping Table
+
+| EntLib Component | Current Usage | .NET 9 Replacement | NuGet Package |
+|---|---|---|---|
+| EntLib Logging Block | LoggingHelper static class, Logger.Write(LogEntry) | Serilog + Microsoft.Extensions.Logging ILogger<T> | Serilog.AspNetCore, Serilog.Sinks.Console, Serilog.Sinks.File |
+| EntLib Data Access Block | DatabaseProviderFactory, Database class, stored procs | Entity Framework Core 9 with DbContext | Microsoft.EntityFrameworkCore.SqlServer |
+| EntLib Exception Handling | ExceptionPolicyFactory, ExceptionManager, policies | ASP.NET Core Exception Handling Middleware + try/catch with ILogger | Built-in (Microsoft.AspNetCore.Diagnostics) |
+| EntLib Validation Block | ValidationFactory, attribute validators | System.ComponentModel.DataAnnotations (built-in) | Built-in |
+| Unity DI Container | UnityContainer, ContainerControlledLifetimeManager | Built-in .NET Core DI (IServiceCollection) | Built-in (Microsoft.Extensions.DependencyInjection) |
+| XML Configuration | Web.config, SystemConfigurationSource | appsettings.json + IConfiguration + Options pattern | Built-in |
+| ASP.NET MVC 5 | System.Web.Mvc, Global.asax, Filters | ASP.NET Core MVC (Microsoft.AspNetCore.Mvc) | Built-in |
+
+## Detailed Mapping
+
+### Logging: EntLib → Serilog + ILogger<T>
+- `LoggingHelper.LogInfo(msg, category)` → `_logger.LogInformation(msg)` with structured logging
+- `LoggingHelper.LogWarning(msg, category)` → `_logger.LogWarning(msg)`
+- `LoggingHelper.LogError(msg, ex, category)` → `_logger.LogError(ex, msg)`
+- `LoggingHelper.LogCritical(msg, ex, category)` → `_logger.LogCritical(ex, msg)`
+- `LoggingHelper.LogVerbose(msg, category)` → `_logger.LogDebug(msg)`
+- Categories → Serilog source context (automatic from ILogger<T>)
+- Priorities → Log level enum (built-in)
+- Extended properties → Structured logging properties
+
+### Data Access: EntLib DAAB → Entity Framework Core
+- `DatabaseFactory.GetDatabase()` → `HealthClaimsDbContext` via DI
+- `Database.GetStoredProcCommand()` → EF Core LINQ queries / DbSet<T>
+- `Database.AddInParameter()` → EF Core parameterized queries
+- `Database.ExecuteReader()` → `DbSet<T>.ToListAsync()`
+- `Database.ExecuteNonQuery()` → `DbContext.SaveChangesAsync()`
+- `Database.GetParameterValue()` → EF Core auto-generated IDs
+- Manual IDataReader mapping → EF Core entity mapping (automatic)
+- Stored procedures → LINQ queries (or FromSqlRaw for complex queries)
+
+### Exception Handling: EntLib → Middleware + Standard Patterns
+- `ExceptionPolicyFactory` → Remove entirely
+- `ExceptionManager.HandleException(ex, "Policy")` → Standard try/catch + ILogger
+- `EntLibExceptionFilter` → ASP.NET Core ExceptionHandler middleware
+- "Data Access Policy" → Catch in repository, log and rethrow
+- "Service Layer Policy" → Catch in service, log and rethrow
+- "Global Policy" → UseExceptionHandler() middleware in Program.cs
+
+### Validation: EntLib Validators → DataAnnotations
+- `[StringLengthValidator(1, 50)]` → `[Required, StringLength(50)]`
+- `[RangeValidator(1, Inclusive, max, Inclusive)]` → `[Range(1, int.MaxValue)]`
+- `[NotNullValidator]` → `[Required]`
+- `[RegexValidator(pattern)]` → `[RegularExpression(pattern)]`
+- `[ObjectCollectionValidator]` → Custom validation or nested validation
+- `ValidationFactory.CreateValidator<T>()` → `ModelState.IsValid` in controllers
+
+### DI Container: Unity → Built-in .NET Core DI
+- `new UnityContainer()` → `builder.Services` in Program.cs
+- `container.RegisterType<T>(new ContainerControlledLifetimeManager())` → `services.AddSingleton<T>()`
+- `container.RegisterType<T>()` → `services.AddTransient<T>()` or `services.AddScoped<T>()`
+- `container.RegisterInstance<T>(instance)` → `services.AddSingleton<T>(instance)`
+- `DependencyResolver.SetResolver()` → Built-in (automatic in ASP.NET Core)
+
+### Configuration: Web.config → appsettings.json
+- Connection strings in Web.config → ConnectionStrings section in appsettings.json
+- EntLib XML config sections → Remove entirely
+- `SystemConfigurationSource` → `IConfiguration` via DI
+- `ConfigurationSourceFactory.Create()` → Remove entirely
+
+### Web Framework: ASP.NET MVC 5 → ASP.NET Core 9
+- `System.Web.Mvc.Controller` → `Microsoft.AspNetCore.Mvc.Controller`
+- `Global.asax.cs` → `Program.cs`
+- `ActionResult` → `IActionResult`
+- `HttpNotFound()` → `NotFound()`
+- `ViewBag`, `ViewData` → Same (compatible)
+- `[ValidateAntiForgeryToken]` → `[ValidateAntiForgeryToken]` (same)
+- `FilterConfig` → `builder.Services.AddControllersWithViews()`
+- `RouteConfig` → `app.MapControllerRoute()`
+- `BundleConfig` → Static files middleware / LibMan / npm
