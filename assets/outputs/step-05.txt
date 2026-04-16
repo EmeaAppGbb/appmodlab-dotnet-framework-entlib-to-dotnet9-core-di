@@ -1,0 +1,40 @@
+# Step 05: Migrate Data Access - EntLib DAAB → Entity Framework Core
+
+## Changes Made
+
+### New Files
+- HealthClaimsProcessor.Core/Data/HealthClaimsDbContext.cs - EF Core DbContext with entity configurations
+- HealthClaimsProcessor.Core/Interfaces/IClaimRepository.cs - Repository interface
+- HealthClaimsProcessor.Core/Interfaces/IPatientRepository.cs - Repository interface
+- HealthClaimsProcessor.Core/Interfaces/IPaymentRepository.cs - Repository interface
+- HealthClaimsProcessor.Core/Interfaces/IProviderRepository.cs - Repository interface
+
+### Deleted Files
+- HealthClaimsProcessor.Core/DataAccess/DatabaseFactory.cs - EntLib Database factory (replaced by EF Core DI)
+- HealthClaimsProcessor.Core/Validation/ClaimValidators.cs - EntLib ValidationFactory (replaced by DataAnnotations)
+
+### Rewritten Repositories (EntLib Database → EF Core DbContext)
+- ClaimRepository.cs - Now uses DbContext with LINQ queries, Include() for navigation properties
+- PatientRepository.cs - EF Core with DbSet operations
+- PaymentRepository.cs - EF Core with DbSet operations
+- ProviderRepository.cs - EF Core with DbSet operations
+
+### Key Changes per Repository
+- Constructor: Accepts HealthClaimsDbContext + ILogger<T> via DI (was: parameterless, DatabaseFactory)
+- Queries: LINQ with .Where(), .Include(), .OrderBy() (was: stored procedure calls)
+- Insert: _context.Add() + SaveChanges() (was: GetStoredProcCommand + ExecuteNonQuery)
+- Update: Find + modify + SaveChanges() (was: stored procedure with parameters)
+- Mapping: Automatic EF Core entity mapping (was: manual IDataReader column mapping)
+
+### Model Updates (EntLib Validation → DataAnnotations)
+- Claim.cs: [StringLengthValidator] → [Required, StringLength], [RangeValidator] → [Range]
+- ClaimLineItem.cs: [RegexValidator] → [RegularExpression], [RangeValidator] → [Range]
+- Patient.cs: All EntLib validators → DataAnnotations equivalents
+- Payment.cs: All EntLib validators → DataAnnotations equivalents
+- Provider.cs: All EntLib validators → DataAnnotations equivalents
+
+### DbContext Configuration
+- Fluent API for table mappings, column types, relationships
+- Foreign keys: Patient→Claims, Provider→Claims, Claim→LineItems, Claim→Payments
+- Decimal precision: decimal(18,2) for monetary columns
+- Unique indexes on ClaimNumber and PaymentNumber

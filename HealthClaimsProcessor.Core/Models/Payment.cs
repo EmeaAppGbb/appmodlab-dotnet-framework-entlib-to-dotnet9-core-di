@@ -1,5 +1,4 @@
-using System;
-using Microsoft.Practices.EnterpriseLibrary.Validation.Validators;
+using System.ComponentModel.DataAnnotations;
 
 namespace HealthClaimsProcessor.Core.Models
 {
@@ -7,23 +6,21 @@ namespace HealthClaimsProcessor.Core.Models
     {
         public int PaymentId { get; set; }
 
-        [RangeValidator(1, RangeBoundaryType.Inclusive, int.MaxValue, RangeBoundaryType.Inclusive,
-            MessageTemplate = "Claim ID is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Claim ID is required")]
         public int ClaimId { get; set; }
 
         public Claim Claim { get; set; }
 
-        [StringLengthValidator(1, 50, MessageTemplate = "Payment number is required")]
+        [Required, StringLength(50, ErrorMessage = "Payment number is required")]
         public string PaymentNumber { get; set; }
 
-        [RangeValidator(typeof(decimal), "0.01", RangeBoundaryType.Inclusive, "9999999.99", RangeBoundaryType.Inclusive,
-            MessageTemplate = "Payment amount must be greater than 0")]
+        [Range(0.01, 9999999.99, ErrorMessage = "Payment amount must be greater than 0")]
         public decimal PaymentAmount { get; set; }
 
-        [NotNullValidator(MessageTemplate = "Payment date is required")]
+        [Required(ErrorMessage = "Payment date is required")]
         public DateTime PaymentDate { get; set; }
 
-        [StringLengthValidator(1, 20, MessageTemplate = "Payment method is required")]
+        [Required, StringLength(20, ErrorMessage = "Payment method is required")]
         public string PaymentMethod { get; set; }
 
         public string CheckNumber { get; set; }

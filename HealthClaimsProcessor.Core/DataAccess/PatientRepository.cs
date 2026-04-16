@@ -1,190 +1,109 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-using Microsoft.Practices.EnterpriseLibrary.Data;
-using HealthClaimsProcessor.Core.Logging;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Data;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.DataAccess
 {
-    public class PatientRepository
+    public class PatientRepository : IPatientRepository
     {
-        private readonly Database _database;
+        private readonly HealthClaimsDbContext _context;
+        private readonly ILogger<PatientRepository> _logger;
 
-        public PatientRepository()
+        public PatientRepository(HealthClaimsDbContext context, ILogger<PatientRepository> logger)
         {
-            _database = DatabaseFactory.GetDatabase();
+            _context = context;
+            _logger = logger;
         }
 
         public List<Patient> GetAllPatients()
         {
-            LoggingHelper.LogInfo("Retrieving all patients", "DataAccess");
-
-            var patients = new List<Patient>();
+            _logger.LogInformation("Retrieving all patients");
 
             try
             {
-                using (DbCommand command = _database.GetStoredProcCommand("sp_GetAllPatients"))
-                using (IDataReader reader = _database.ExecuteReader(command))
-                {
-                    while (reader.Read())
-                    {
-                        patients.Add(MapPatient(reader));
-                    }
-                }
+                var patients = _context.Patients
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
+                    .ToList();
 
-                LoggingHelper.LogInfo($"Retrieved {patients.Count} patients", "DataAccess");
+                _logger.LogInformation("Retrieved {Count} patients", patients.Count);
+                return patients;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error retrieving all patients", ex, "DataAccess");
+                _logger.LogError(ex, "Error retrieving all patients");
                 throw;
             }
-
-            return patients;
         }
 
         public Patient GetPatientById(int patientId)
         {
-            LoggingHelper.LogInfo($"Retrieving patient with ID: {patientId}", "DataAccess");
+            _logger.LogInformation("Retrieving patient with ID: {PatientId}", patientId);
 
             try
             {
-                using (DbCommand command = _database.GetStoredProcCommand("sp_GetPatientById"))
-                {
-                    _database.AddInParameter(command, "@PatientId", DbType.Int32, patientId);
+                var patient = _context.Patients.FirstOrDefault(p => p.PatientId == patientId);
 
-                    using (IDataReader reader = _database.ExecuteReader(command))
-                    {
-                        if (reader.Read())
-                        {
-                            var patient = MapPatient(reader);
-                            LoggingHelper.LogInfo($"Found patient: {patient.FirstName} {patient.LastName}", "DataAccess");
-                            return patient;
-                        }
-                    }
+                if (patient != null)
+                {
+                    _logger.LogInformation("Found patient: {FirstName} {LastName}", patient.FirstName, patient.LastName);
+                }
+                else
+                {
+                    _logger.LogWarning("Patient with ID {PatientId} not found", patientId);
                 }
 
-                LoggingHelper.LogWarning($"Patient with ID {patientId} not found", "DataAccess");
-                return null;
+                return patient;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error retrieving patient with ID: {patientId}", ex, "DataAccess");
+                _logger.LogError(ex, "Error retrieving patient with ID: {PatientId}", patientId);
                 throw;
             }
         }
 
         public int InsertPatient(Patient patient)
         {
-            LoggingHelper.LogInfo($"Inserting new patient: {patient.FirstName} {patient.LastName}", "DataAccess");
+            _logger.LogInformation("Inserting new patient: {FirstName} {LastName}", patient.FirstName, patient.LastName);
 
             try
             {
-                using (DbCommand command = _database.GetStoredProcCommand("sp_InsertPatient"))
-                {
-                    _database.AddOutParameter(command, "@PatientId", DbType.Int32, 4);
-                    _database.AddInParameter(command, "@FirstName", DbType.String, patient.FirstName);
-                    _database.AddInParameter(command, "@LastName", DbType.String, patient.LastName);
-                    _database.AddInParameter(command, "@DateOfBirth", DbType.DateTime, patient.DateOfBirth);
-                    _database.AddInParameter(command, "@SSN", DbType.String, patient.SSN);
-                    _database.AddInParameter(command, "@Address", DbType.String, patient.Address);
-                    _database.AddInParameter(command, "@City", DbType.String, patient.City);
-                    _database.AddInParameter(command, "@State", DbType.String, patient.State);
-                    _database.AddInParameter(command, "@ZipCode", DbType.String, patient.ZipCode);
-                    _database.AddInParameter(command, "@Phone", DbType.String, patient.Phone);
-                    _database.AddInParameter(command, "@Email", DbType.String,
-                        (object)patient.Email ?? DBNull.Value);
-                    _database.AddInParameter(command, "@InsurancePolicyNumber", DbType.String, patient.InsurancePolicyNumber);
-                    _database.AddInParameter(command, "@InsuranceGroupNumber", DbType.String, patient.InsuranceGroupNumber);
-                    _database.AddInParameter(command, "@InsuranceEffectiveDate", DbType.DateTime, patient.InsuranceEffectiveDate);
-                    _database.AddInParameter(command, "@InsuranceTerminationDate", DbType.DateTime,
-                        patient.InsuranceTerminationDate.HasValue ? (object)patient.InsuranceTerminationDate.Value : DBNull.Value);
-                    _database.AddInParameter(command, "@IsActive", DbType.Boolean, patient.IsActive);
+                _context.Patients.Add(patient);
+                _context.SaveChanges();
 
-                    _database.ExecuteNonQuery(command);
-
-                    int newId = (int)_database.GetParameterValue(command, "@PatientId");
-                    patient.PatientId = newId;
-
-                    LoggingHelper.LogInfo($"Inserted patient with ID: {newId}", "DataAccess");
-                    return newId;
-                }
+                _logger.LogInformation("Inserted patient with ID: {PatientId}", patient.PatientId);
+                return patient.PatientId;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error inserting patient: {patient.FirstName} {patient.LastName}", ex, "DataAccess");
+                _logger.LogError(ex, "Error inserting patient: {FirstName} {LastName}", patient.FirstName, patient.LastName);
                 throw;
             }
         }
 
         public void UpdatePatient(Patient patient)
         {
-            LoggingHelper.LogInfo($"Updating patient with ID: {patient.PatientId}", "DataAccess");
+            _logger.LogInformation("Updating patient with ID: {PatientId}", patient.PatientId);
 
             try
             {
-                using (DbCommand command = _database.GetStoredProcCommand("sp_UpdatePatient"))
+                var existing = _context.Patients.Find(patient.PatientId);
+                if (existing != null)
                 {
-                    _database.AddInParameter(command, "@PatientId", DbType.Int32, patient.PatientId);
-                    _database.AddInParameter(command, "@FirstName", DbType.String, patient.FirstName);
-                    _database.AddInParameter(command, "@LastName", DbType.String, patient.LastName);
-                    _database.AddInParameter(command, "@DateOfBirth", DbType.DateTime, patient.DateOfBirth);
-                    _database.AddInParameter(command, "@SSN", DbType.String, patient.SSN);
-                    _database.AddInParameter(command, "@Address", DbType.String, patient.Address);
-                    _database.AddInParameter(command, "@City", DbType.String, patient.City);
-                    _database.AddInParameter(command, "@State", DbType.String, patient.State);
-                    _database.AddInParameter(command, "@ZipCode", DbType.String, patient.ZipCode);
-                    _database.AddInParameter(command, "@Phone", DbType.String, patient.Phone);
-                    _database.AddInParameter(command, "@Email", DbType.String,
-                        (object)patient.Email ?? DBNull.Value);
-                    _database.AddInParameter(command, "@InsurancePolicyNumber", DbType.String, patient.InsurancePolicyNumber);
-                    _database.AddInParameter(command, "@InsuranceGroupNumber", DbType.String, patient.InsuranceGroupNumber);
-                    _database.AddInParameter(command, "@InsuranceEffectiveDate", DbType.DateTime, patient.InsuranceEffectiveDate);
-                    _database.AddInParameter(command, "@InsuranceTerminationDate", DbType.DateTime,
-                        patient.InsuranceTerminationDate.HasValue ? (object)patient.InsuranceTerminationDate.Value : DBNull.Value);
-                    _database.AddInParameter(command, "@IsActive", DbType.Boolean, patient.IsActive);
-
-                    _database.ExecuteNonQuery(command);
+                    _context.Entry(existing).CurrentValues.SetValues(patient);
+                    existing.ModifiedDate = DateTime.Now;
+                    _context.SaveChanges();
                 }
 
-                LoggingHelper.LogInfo($"Updated patient with ID: {patient.PatientId}", "DataAccess");
+                _logger.LogInformation("Updated patient with ID: {PatientId}", patient.PatientId);
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error updating patient with ID: {patient.PatientId}", ex, "DataAccess");
+                _logger.LogError(ex, "Error updating patient with ID: {PatientId}", patient.PatientId);
                 throw;
             }
-        }
-
-        private Patient MapPatient(IDataReader reader)
-        {
-            return new Patient
-            {
-                PatientId = reader.GetInt32(reader.GetOrdinal("PatientId")),
-                FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
-                LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                DateOfBirth = reader.GetDateTime(reader.GetOrdinal("DateOfBirth")),
-                SSN = reader.GetString(reader.GetOrdinal("SSN")),
-                Address = reader.GetString(reader.GetOrdinal("Address")),
-                City = reader.GetString(reader.GetOrdinal("City")),
-                State = reader.GetString(reader.GetOrdinal("State")),
-                ZipCode = reader.GetString(reader.GetOrdinal("ZipCode")),
-                Phone = reader.GetString(reader.GetOrdinal("Phone")),
-                Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
-                InsurancePolicyNumber = reader.GetString(reader.GetOrdinal("InsurancePolicyNumber")),
-                InsuranceGroupNumber = reader.GetString(reader.GetOrdinal("InsuranceGroupNumber")),
-                InsuranceEffectiveDate = reader.GetDateTime(reader.GetOrdinal("InsuranceEffectiveDate")),
-                InsuranceTerminationDate = reader.IsDBNull(reader.GetOrdinal("InsuranceTerminationDate"))
-                    ? (DateTime?)null
-                    : reader.GetDateTime(reader.GetOrdinal("InsuranceTerminationDate")),
-                CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                ModifiedDate = reader.IsDBNull(reader.GetOrdinal("ModifiedDate"))
-                    ? (DateTime?)null
-                    : reader.GetDateTime(reader.GetOrdinal("ModifiedDate")),
-                IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive"))
-            };
         }
     }
 }

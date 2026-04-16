@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.Practices.EnterpriseLibrary.Validation.Validators;
+using System.ComponentModel.DataAnnotations;
 
 namespace HealthClaimsProcessor.Core.Models
 {
@@ -8,38 +6,37 @@ namespace HealthClaimsProcessor.Core.Models
     {
         public int ClaimId { get; set; }
 
-        [StringLengthValidator(1, 50, MessageTemplate = "Claim number is required")]
+        [Required(ErrorMessage = "Claim number is required")]
+        [StringLength(50)]
         public string ClaimNumber { get; set; }
 
-        [RangeValidator(1, RangeBoundaryType.Inclusive, int.MaxValue, RangeBoundaryType.Inclusive,
-            MessageTemplate = "Patient ID is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Patient ID is required")]
         public int PatientId { get; set; }
 
         public Patient Patient { get; set; }
 
-        [RangeValidator(1, RangeBoundaryType.Inclusive, int.MaxValue, RangeBoundaryType.Inclusive,
-            MessageTemplate = "Provider ID is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Provider ID is required")]
         public int ProviderId { get; set; }
 
         public Provider Provider { get; set; }
 
-        [NotNullValidator(MessageTemplate = "Service date is required")]
+        [Required(ErrorMessage = "Service date is required")]
         public DateTime ServiceDateFrom { get; set; }
 
-        [NotNullValidator(MessageTemplate = "Service date is required")]
+        [Required(ErrorMessage = "Service date is required")]
         public DateTime ServiceDateTo { get; set; }
 
         public DateTime SubmittedDate { get; set; }
 
         public ClaimStatus Status { get; set; }
 
-        [StringLengthValidator(1, 20, MessageTemplate = "Place of service is required")]
+        [Required(ErrorMessage = "Place of service is required")]
+        [StringLength(20)]
         public string PlaceOfService { get; set; }
 
         public string DiagnosisPointer { get; set; }
 
-        [RangeValidator(typeof(decimal), "0.01", RangeBoundaryType.Inclusive, "9999999.99", RangeBoundaryType.Inclusive,
-            MessageTemplate = "Total charge must be greater than 0")]
+        [Range(0.01, 9999999.99, ErrorMessage = "Total charge must be greater than 0")]
         public decimal TotalChargeAmount { get; set; }
 
         public decimal TotalApprovedAmount { get; set; }
@@ -74,7 +71,6 @@ namespace HealthClaimsProcessor.Core.Models
 
         public string ModifiedBy { get; set; }
 
-        [ObjectCollectionValidator(typeof(ClaimLineItem))]
         public List<ClaimLineItem> LineItems { get; set; }
 
         public Claim()
