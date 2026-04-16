@@ -1,0 +1,97 @@
+# Step 01: Explore Legacy Application - EntLib Usage Analysis
+
+## Enterprise Library Usage Analysis
+
+### 1. EntLib Logging Block (Microsoft.Practices.EnterpriseLibrary.Logging)
+**File: Core/Logging/LoggingHelper.cs**
+- Static helper class wrapping EntLib Logger
+- Methods: LogInfo(), LogWarning(), LogError(), LogCritical(), LogVerbose()
+- Uses LogEntry objects with categories, priorities, severity levels (TraceEventType)
+- Logger.Write(logEntry) for all log operations
+- Extended properties for exception details (Exception, ExceptionType, StackTrace)
+
+**Consumers (ALL repositories, services, and controllers):**
+- ClaimRepository.cs - 12 logging calls
+- PatientRepository.cs - 10 logging calls
+- PaymentRepository.cs - 10 logging calls
+- ProviderRepository.cs - 6 logging calls
+- ClaimService.cs - 10 logging calls
+- PatientService.cs - 8 logging calls
+- PaymentService.cs - 8 logging calls
+- ProviderService.cs - 6 logging calls
+- ClaimController.cs - 12 logging calls
+- PatientController.cs - 10 logging calls
+- PaymentController.cs - 6 logging calls
+- ProviderController.cs - 6 logging calls
+- HomeController.cs - 1 logging call
+- Global.asax.cs - 3 logging calls
+- EntLibExceptionFilter.cs - 1 logging call
+
+### 2. EntLib Data Access Block (Microsoft.Practices.EnterpriseLibrary.Data)
+**File: Core/DataAccess/DatabaseFactory.cs**
+- Static factory using DatabaseProviderFactory().Create("HealthClaimsDB")
+- Singleton pattern for Database instance
+
+**Repository Files using EntLib Database class:**
+- ClaimRepository.cs - GetStoredProcCommand, AddInParameter, AddOutParameter, ExecuteReader, ExecuteNonQuery, GetParameterValue
+  - sp_GetAllClaims, sp_GetClaimById, sp_GetClaimsByPatientId, sp_InsertClaim, sp_UpdateClaimStatus, sp_InsertClaimLineItem, sp_GetClaimLineItems
+- PatientRepository.cs - Same EntLib Database patterns
+  - sp_GetAllPatients, sp_GetPatientById, sp_InsertPatient, sp_UpdatePatient
+- PaymentRepository.cs - Same EntLib Database patterns
+  - sp_GetAllPayments, sp_GetPaymentById, sp_GetPaymentsByClaimId, sp_InsertPayment, sp_UpdatePaymentStatus
+- ProviderRepository.cs - Same EntLib Database patterns
+  - sp_GetAllProviders, sp_GetProviderById, sp_InsertProvider
+
+### 3. EntLib Exception Handling Block (Microsoft.Practices.EnterpriseLibrary.ExceptionHandling)
+**Files:**
+- ClaimService.cs - ExceptionPolicyFactory + SystemConfigurationSource, "Data Access Policy" and "Service Layer Policy"
+- PatientService.cs - Same pattern with ExceptionPolicyFactory
+- PaymentService.cs - Same pattern with ExceptionPolicyFactory
+- ProviderService.cs - Same pattern with ExceptionPolicyFactory
+- EntLibExceptionFilter.cs - Global MVC filter using "Global Policy"
+- UnityConfig.cs - ConfigurationSourceFactory.Create() + ExceptionPolicyFactory
+
+**Exception Policies Used:**
+- "Data Access Policy" - in all service catch blocks for repository calls
+- "Service Layer Policy" - in service methods for business logic errors
+- "Global Policy" - in the global exception filter
+
+### 4. EntLib Validation Block (Microsoft.Practices.EnterpriseLibrary.Validation)
+**Model Attributes:**
+- Claim.cs: StringLengthValidator, RangeValidator, NotNullValidator, ObjectCollectionValidator
+- ClaimLineItem.cs: RangeValidator, RegexValidator
+- Patient.cs: StringLengthValidator, NotNullValidator, RegexValidator
+- Payment.cs: RangeValidator, StringLengthValidator, NotNullValidator
+- Provider.cs: StringLengthValidator, RegexValidator
+
+**Validation Factory:**
+- ClaimValidators.cs - ValidationFactory.CreateValidator<T>() for all model types
+- ClaimService.cs - Inline ValidationFactory usage for claim submission
+- PatientService.cs - Inline ValidationFactory usage for patient create/update
+- PaymentService.cs - Inline ValidationFactory usage for payment processing
+- ProviderService.cs - Inline ValidationFactory usage for provider creation
+
+### 5. Unity DI Container
+**File: Web/App_Start/UnityConfig.cs**
+- Repositories: Singleton (ContainerControlledLifetimeManager)
+- Services: Transient (default)
+- ExceptionManager: Registered as instance
+- DependencyResolver.SetResolver(new UnityDependencyResolver(container))
+
+### 6. Solution Structure
+- HealthClaimsProcessor.Core (.NET Framework 4.8 Class Library)
+  - DataAccess/ (5 files), Services/ (4 files), Models/ (6 files), Logging/ (1 file), Validation/ (1 file)
+- HealthClaimsProcessor.Web (.NET Framework 4.8 ASP.NET MVC 5.2.9)
+  - Controllers/ (5 files), Filters/ (1 file), App_Start/ (4 files), Views/ (multiple)
+- Database/ - SQL Server schema with stored procedures and sample data
+
+### 7. NuGet Dependencies (EntLib-related)
+- EnterpriseLibrary.Common 6.0.1304.0
+- EnterpriseLibrary.Data 6.0.1304.0
+- EnterpriseLibrary.ExceptionHandling 6.0.1304.0
+- EnterpriseLibrary.Logging 6.0.1304.0
+- EnterpriseLibrary.Validation 6.0.1304.0
+- Unity.Container 5.11.11
+- Unity.Abstractions 5.11.7
+- Unity.Mvc 5.11.1
+- CommonServiceLocator 2.0.7
