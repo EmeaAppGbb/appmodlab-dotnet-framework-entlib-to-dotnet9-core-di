@@ -1,0 +1,48 @@
+# Step 04: Migrate Logging - EntLib Logging Block → Serilog + ILogger
+
+## Changes Made
+
+### Project Structure Migration
+- Converted HealthClaimsProcessor.Core.csproj to SDK-style targeting .NET 9.0
+- Converted HealthClaimsProcessor.Web.csproj to SDK-style targeting .NET 9.0
+- Updated solution file project type GUIDs to SDK-style
+- Removed obsolete .NET Framework files:
+  - Global.asax, Global.asax.cs
+  - Web.config, Web.Debug.config, Web.Release.config
+  - Views/Web.config
+  - packages.config (both projects)
+  - Properties/AssemblyInfo.cs (both projects)
+  - App_Start/BundleConfig.cs, FilterConfig.cs, RouteConfig.cs, UnityConfig.cs
+  - Filters/EntLibExceptionFilter.cs
+
+### New Files Created
+- Program.cs - ASP.NET Core entry point with Serilog configuration
+- appsettings.json - Connection strings and Serilog settings
+- Views/_ViewImports.cshtml - Tag helper and namespace imports
+
+### Logging Migration
+- Rewrote LoggingHelper.cs to use Microsoft.Extensions.Logging.ILogger
+- Replaced EntLib Logger.Write(LogEntry) with ILogger.LogInformation/Warning/Error/Critical/Debug
+- Configured LoggingHelper as static bridge for backward compatibility during migration
+- Added Serilog.AspNetCore with Console and rolling File sinks
+- Serilog reads from configuration (appsettings.json) for log level overrides
+
+### NuGet Packages Added
+- Microsoft.EntityFrameworkCore.SqlServer 9.0.*
+- Microsoft.Extensions.Logging.Abstractions 9.0.*
+- Serilog.Extensions.Logging 9.0.*
+- Serilog.AspNetCore 9.0.*
+- Serilog.Sinks.Console 6.0.*
+- Serilog.Sinks.File 6.0.*
+
+### NuGet Packages Removed
+- All EntLib packages (Common, Data, ExceptionHandling, Logging, Validation)
+- Unity packages (Container, Abstractions, Mvc)
+- CommonServiceLocator
+- All ASP.NET MVC 5 packages
+- WebGrease, Antlr, Microsoft.Web.Infrastructure
+
+### View Updates
+- _Layout.cshtml: Replaced @Styles.Render/@Scripts.Render with CDN links
+- Error.cshtml: Simplified to ASP.NET Core compatible error page
+- Create.cshtml: Replaced bundle references with CDN scripts

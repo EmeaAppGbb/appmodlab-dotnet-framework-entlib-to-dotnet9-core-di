@@ -1,91 +1,58 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using Microsoft.Practices.EnterpriseLibrary.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace HealthClaimsProcessor.Core.Logging
 {
+    /// <summary>
+    /// Bridge helper that wraps ILogger for backward compatibility during migration.
+    /// New code should inject ILogger&lt;T&gt; directly.
+    /// </summary>
     public static class LoggingHelper
     {
+        private static ILoggerFactory _loggerFactory;
+
+        public static void Configure(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+        }
+
+        private static ILogger GetLogger(string category)
+        {
+            if (_loggerFactory == null)
+            {
+                _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            }
+            return _loggerFactory.CreateLogger(category);
+        }
+
         public static void LogInfo(string message, string category = "General")
         {
-            var logEntry = new LogEntry
-            {
-                Message = message,
-                Categories = new List<string> { category },
-                Priority = 5,
-                Severity = TraceEventType.Information,
-                TimeStamp = DateTime.Now
-            };
-            Logger.Write(logEntry);
+            GetLogger(category).LogInformation(message);
         }
 
         public static void LogWarning(string message, string category = "General")
         {
-            var logEntry = new LogEntry
-            {
-                Message = message,
-                Categories = new List<string> { category },
-                Priority = 7,
-                Severity = TraceEventType.Warning,
-                TimeStamp = DateTime.Now
-            };
-            Logger.Write(logEntry);
+            GetLogger(category).LogWarning(message);
         }
 
         public static void LogError(string message, Exception exception = null, string category = "General")
         {
-            var logEntry = new LogEntry
-            {
-                Message = message,
-                Categories = new List<string> { category },
-                Priority = 10,
-                Severity = TraceEventType.Error,
-                TimeStamp = DateTime.Now
-            };
-
             if (exception != null)
-            {
-                logEntry.ExtendedProperties.Add("Exception", exception.ToString());
-                logEntry.ExtendedProperties.Add("ExceptionType", exception.GetType().FullName);
-                logEntry.ExtendedProperties.Add("StackTrace", exception.StackTrace);
-            }
-
-            Logger.Write(logEntry);
+                GetLogger(category).LogError(exception, message);
+            else
+                GetLogger(category).LogError(message);
         }
 
         public static void LogCritical(string message, Exception exception = null, string category = "General")
         {
-            var logEntry = new LogEntry
-            {
-                Message = message,
-                Categories = new List<string> { category },
-                Priority = 15,
-                Severity = TraceEventType.Critical,
-                TimeStamp = DateTime.Now
-            };
-
             if (exception != null)
-            {
-                logEntry.ExtendedProperties.Add("Exception", exception.ToString());
-                logEntry.ExtendedProperties.Add("ExceptionType", exception.GetType().FullName);
-                logEntry.ExtendedProperties.Add("StackTrace", exception.StackTrace);
-            }
-
-            Logger.Write(logEntry);
+                GetLogger(category).LogCritical(exception, message);
+            else
+                GetLogger(category).LogCritical(message);
         }
 
         public static void LogVerbose(string message, string category = "General")
         {
-            var logEntry = new LogEntry
-            {
-                Message = message,
-                Categories = new List<string> { category },
-                Priority = 1,
-                Severity = TraceEventType.Verbose,
-                TimeStamp = DateTime.Now
-            };
-            Logger.Write(logEntry);
+            GetLogger(category).LogDebug(message);
         }
     }
 }
