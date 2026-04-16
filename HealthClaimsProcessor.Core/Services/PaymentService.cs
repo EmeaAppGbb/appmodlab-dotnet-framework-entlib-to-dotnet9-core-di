@@ -5,7 +5,7 @@ using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.Services
 {
-    public class PaymentService
+    public class PaymentService : IPaymentService
     {
         private readonly IPaymentRepository _paymentRepository;
         private readonly IClaimRepository _claimRepository;

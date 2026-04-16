@@ -1,27 +1,29 @@
-using System;
-using System.Web.Mvc;
-using HealthClaimsProcessor.Core.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
-using HealthClaimsProcessor.Core.Services;
 
 namespace HealthClaimsProcessor.Web.Controllers
 {
     public class ClaimController : Controller
     {
-        private readonly ClaimService _claimService;
-        private readonly PatientService _patientService;
-        private readonly ProviderService _providerService;
+        private readonly IClaimService _claimService;
+        private readonly IPatientService _patientService;
+        private readonly IProviderService _providerService;
+        private readonly ILogger<ClaimController> _logger;
 
-        public ClaimController(ClaimService claimService, PatientService patientService, ProviderService providerService)
+        public ClaimController(IClaimService claimService, IPatientService patientService,
+            IProviderService providerService, ILogger<ClaimController> logger)
         {
             _claimService = claimService;
             _patientService = patientService;
             _providerService = providerService;
+            _logger = logger;
         }
 
-        public ActionResult Index()
+        public IActionResult Index()
         {
-            LoggingHelper.LogInfo("Listing all claims", "Controller");
+            _logger.LogInformation("Listing all claims");
 
             try
             {
@@ -30,35 +32,35 @@ namespace HealthClaimsProcessor.Web.Controllers
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error listing claims", ex, "Controller");
+                _logger.LogError(ex, "Error listing claims");
                 return View("Error");
             }
         }
 
-        public ActionResult Details(int id)
+        public IActionResult Details(int id)
         {
-            LoggingHelper.LogInfo($"Viewing claim details for ID: {id}", "Controller");
+            _logger.LogInformation("Viewing claim details for ID: {ClaimId}", id);
 
             try
             {
                 var claim = _claimService.GetClaimById(id);
                 if (claim == null)
                 {
-                    return HttpNotFound();
+                    return NotFound();
                 }
                 return View(claim);
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error viewing claim details for ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error viewing claim details for ID: {ClaimId}", id);
                 return View("Error");
             }
         }
 
         [HttpGet]
-        public ActionResult Create()
+        public IActionResult Create()
         {
-            LoggingHelper.LogInfo("Displaying claim create form", "Controller");
+            _logger.LogInformation("Displaying claim create form");
 
             try
             {
@@ -67,16 +69,16 @@ namespace HealthClaimsProcessor.Web.Controllers
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error loading claim create form", ex, "Controller");
+                _logger.LogError(ex, "Error loading claim create form");
                 return View("Error");
             }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Claim claim)
+        public IActionResult Create(Claim claim)
         {
-            LoggingHelper.LogInfo("Submitting new claim", "Controller");
+            _logger.LogInformation("Submitting new claim");
 
             try
             {
@@ -87,12 +89,12 @@ namespace HealthClaimsProcessor.Web.Controllers
                 }
 
                 int newId = _claimService.SubmitClaim(claim);
-                LoggingHelper.LogInfo($"Claim submitted with ID: {newId}", "Controller");
+                _logger.LogInformation("Claim submitted with ID: {ClaimId}", newId);
                 return RedirectToAction("Details", new { id = newId });
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error submitting claim", ex, "Controller");
+                _logger.LogError(ex, "Error submitting claim");
                 ModelState.AddModelError("", ex.Message);
                 PopulateDropdowns();
                 return View(claim);
@@ -100,16 +102,16 @@ namespace HealthClaimsProcessor.Web.Controllers
         }
 
         [HttpGet]
-        public ActionResult Adjudicate(int id)
+        public IActionResult Adjudicate(int id)
         {
-            LoggingHelper.LogInfo($"Displaying adjudication form for claim ID: {id}", "Controller");
+            _logger.LogInformation("Displaying adjudication form for claim ID: {ClaimId}", id);
 
             try
             {
                 var claim = _claimService.GetClaimById(id);
                 if (claim == null)
                 {
-                    return HttpNotFound();
+                    return NotFound();
                 }
 
                 ViewBag.StatusList = new SelectList(new[]
@@ -123,26 +125,26 @@ namespace HealthClaimsProcessor.Web.Controllers
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error loading adjudication form for claim ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error loading adjudication form for claim ID: {ClaimId}", id);
                 return View("Error");
             }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Adjudicate(int id, ClaimStatus status, string notes)
+        public IActionResult Adjudicate(int id, ClaimStatus status, string notes)
         {
-            LoggingHelper.LogInfo($"Adjudicating claim ID: {id} with status: {status}", "Controller");
+            _logger.LogInformation("Adjudicating claim ID: {ClaimId} with status: {Status}", id, status);
 
             try
             {
-                _claimService.AdjudicateClaim(id, status, User.Identity.Name, notes);
-                LoggingHelper.LogInfo($"Claim ID: {id} adjudicated successfully", "Controller");
+                _claimService.AdjudicateClaim(id, status, User.Identity?.Name ?? "System", notes);
+                _logger.LogInformation("Claim ID: {ClaimId} adjudicated successfully", id);
                 return RedirectToAction("Details", new { id });
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error adjudicating claim ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error adjudicating claim ID: {ClaimId}", id);
                 ModelState.AddModelError("", ex.Message);
 
                 var claim = _claimService.GetClaimById(id);

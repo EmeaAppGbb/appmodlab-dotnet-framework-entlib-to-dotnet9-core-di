@@ -1,5 +1,8 @@
 using Serilog;
+using Microsoft.EntityFrameworkCore;
+using HealthClaimsProcessor.Core.Data;
 using HealthClaimsProcessor.Core.DataAccess;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Services;
 
 Log.Logger = new LoggerConfiguration()
@@ -23,17 +26,21 @@ try
     // Add MVC services
     builder.Services.AddControllersWithViews();
 
-    // Register repositories (scoped)
-    builder.Services.AddScoped<ClaimRepository>();
-    builder.Services.AddScoped<PatientRepository>();
-    builder.Services.AddScoped<PaymentRepository>();
-    builder.Services.AddScoped<ProviderRepository>();
+    // Register DbContext
+    builder.Services.AddDbContext<HealthClaimsDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-    // Register services (scoped)
-    builder.Services.AddScoped<ClaimService>();
-    builder.Services.AddScoped<PatientService>();
-    builder.Services.AddScoped<PaymentService>();
-    builder.Services.AddScoped<ProviderService>();
+    // Register repositories (interface → implementation)
+    builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
+    builder.Services.AddScoped<IPatientRepository, PatientRepository>();
+    builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+    builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
+
+    // Register services (interface → implementation)
+    builder.Services.AddScoped<IClaimService, ClaimService>();
+    builder.Services.AddScoped<IPatientService, PatientService>();
+    builder.Services.AddScoped<IPaymentService, PaymentService>();
+    builder.Services.AddScoped<IProviderService, ProviderService>();
 
     var app = builder.Build();
 

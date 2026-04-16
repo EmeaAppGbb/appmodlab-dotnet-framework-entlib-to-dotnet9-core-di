@@ -1,0 +1,44 @@
+# Step 07: Set Up DI Container - Unity → ASP.NET Core Native DI
+
+## Changes Made
+
+### New Service Interfaces
+- HealthClaimsProcessor.Core/Interfaces/IClaimService.cs
+- HealthClaimsProcessor.Core/Interfaces/IPatientService.cs
+- HealthClaimsProcessor.Core/Interfaces/IPaymentService.cs
+- HealthClaimsProcessor.Core/Interfaces/IProviderService.cs
+
+### Services Updated (implement interfaces)
+- ClaimService : IClaimService
+- PatientService : IPatientService
+- PaymentService : IPaymentService
+- ProviderService : IProviderService
+
+### Controllers Rewritten (all 5)
+- ClaimController.cs → ASP.NET Core Controller, ILogger<T>, interface-typed services
+- PatientController.cs → ASP.NET Core Controller, ILogger<T>, interface-typed service
+- PaymentController.cs → ASP.NET Core Controller, ILogger<T>, interface-typed service
+- ProviderController.cs → ASP.NET Core Controller, ILogger<T>, interface-typed service
+- HomeController.cs → ASP.NET Core Controller, ILogger<T>
+
+### Controller Changes (per controller)
+- Base class: System.Web.Mvc.Controller → Microsoft.AspNetCore.Mvc.Controller
+- Return types: ActionResult → IActionResult
+- Not found: HttpNotFound() → NotFound()
+- Logging: LoggingHelper.LogInfo/LogError → _logger.LogInformation/LogError with structured params
+- Dependencies: Concrete service types → Interface types (IClaimService, etc.)
+- Null safety: User.Identity.Name → User.Identity?.Name ?? "System"
+
+### Program.cs DI Registration Updates
+- Added: builder.Services.AddDbContext<HealthClaimsDbContext>(options => options.UseSqlServer(...))
+- Changed: AddScoped<ClaimRepository>() → AddScoped<IClaimRepository, ClaimRepository>()
+- Changed: AddScoped<ClaimService>() → AddScoped<IClaimService, ClaimService>()
+- Same pattern for Patient, Payment, Provider repositories and services
+- Added using directives for Microsoft.EntityFrameworkCore, Core.Data, Core.Interfaces
+
+### DI Registration Summary (Program.cs)
+```
+DbContext:     AddDbContext<HealthClaimsDbContext>(options => UseSqlServer(connectionString))
+Repositories:  AddScoped<IClaimRepository, ClaimRepository>() (x4)
+Services:      AddScoped<IClaimService, ClaimService>() (x4)
+```

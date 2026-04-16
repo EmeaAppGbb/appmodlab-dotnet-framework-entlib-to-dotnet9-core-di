@@ -1,23 +1,24 @@
-using System;
-using System.Web.Mvc;
-using HealthClaimsProcessor.Core.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
-using HealthClaimsProcessor.Core.Services;
 
 namespace HealthClaimsProcessor.Web.Controllers
 {
     public class PaymentController : Controller
     {
-        private readonly PaymentService _paymentService;
+        private readonly IPaymentService _paymentService;
+        private readonly ILogger<PaymentController> _logger;
 
-        public PaymentController(PaymentService paymentService)
+        public PaymentController(IPaymentService paymentService, ILogger<PaymentController> logger)
         {
             _paymentService = paymentService;
+            _logger = logger;
         }
 
-        public ActionResult Index()
+        public IActionResult Index()
         {
-            LoggingHelper.LogInfo("Listing all payments", "Controller");
+            _logger.LogInformation("Listing all payments");
 
             try
             {
@@ -26,35 +27,35 @@ namespace HealthClaimsProcessor.Web.Controllers
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error listing payments", ex, "Controller");
+                _logger.LogError(ex, "Error listing payments");
                 return View("Error");
             }
         }
 
-        public ActionResult Details(int id)
+        public IActionResult Details(int id)
         {
-            LoggingHelper.LogInfo($"Viewing payment details for ID: {id}", "Controller");
+            _logger.LogInformation("Viewing payment details for ID: {PaymentId}", id);
 
             try
             {
                 var payment = _paymentService.GetPaymentById(id);
                 if (payment == null)
                 {
-                    return HttpNotFound();
+                    return NotFound();
                 }
                 return View(payment);
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error viewing payment details for ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error viewing payment details for ID: {PaymentId}", id);
                 return View("Error");
             }
         }
 
         [HttpGet]
-        public ActionResult Create(int claimId)
+        public IActionResult Create(int claimId)
         {
-            LoggingHelper.LogInfo($"Displaying payment form for claim ID: {claimId}", "Controller");
+            _logger.LogInformation("Displaying payment form for claim ID: {ClaimId}", claimId);
 
             var payment = new Payment { ClaimId = claimId };
             return View(payment);
@@ -62,9 +63,9 @@ namespace HealthClaimsProcessor.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Payment payment)
+        public IActionResult Create(Payment payment)
         {
-            LoggingHelper.LogInfo($"Processing payment for claim ID: {payment.ClaimId}", "Controller");
+            _logger.LogInformation("Processing payment for claim ID: {ClaimId}", payment.ClaimId);
 
             try
             {
@@ -74,12 +75,12 @@ namespace HealthClaimsProcessor.Web.Controllers
                 }
 
                 int newId = _paymentService.ProcessPayment(payment);
-                LoggingHelper.LogInfo($"Payment processed with ID: {newId}", "Controller");
+                _logger.LogInformation("Payment processed with ID: {PaymentId}", newId);
                 return RedirectToAction("Details", new { id = newId });
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error processing payment for claim ID: {payment.ClaimId}", ex, "Controller");
+                _logger.LogError(ex, "Error processing payment for claim ID: {ClaimId}", payment.ClaimId);
                 ModelState.AddModelError("", ex.Message);
                 return View(payment);
             }

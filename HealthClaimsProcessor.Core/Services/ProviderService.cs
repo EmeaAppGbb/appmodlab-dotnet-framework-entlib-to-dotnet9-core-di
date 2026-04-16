@@ -5,7 +5,7 @@ using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.Services
 {
-    public class ProviderService
+    public class ProviderService : IProviderService
     {
         private readonly IProviderRepository _providerRepository;
         private readonly ILogger<ProviderService> _logger;

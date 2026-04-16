@@ -1,23 +1,24 @@
-using System;
-using System.Web.Mvc;
-using HealthClaimsProcessor.Core.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
-using HealthClaimsProcessor.Core.Services;
 
 namespace HealthClaimsProcessor.Web.Controllers
 {
     public class ProviderController : Controller
     {
-        private readonly ProviderService _providerService;
+        private readonly IProviderService _providerService;
+        private readonly ILogger<ProviderController> _logger;
 
-        public ProviderController(ProviderService providerService)
+        public ProviderController(IProviderService providerService, ILogger<ProviderController> logger)
         {
             _providerService = providerService;
+            _logger = logger;
         }
 
-        public ActionResult Index()
+        public IActionResult Index()
         {
-            LoggingHelper.LogInfo("Listing all providers", "Controller");
+            _logger.LogInformation("Listing all providers");
 
             try
             {
@@ -26,43 +27,43 @@ namespace HealthClaimsProcessor.Web.Controllers
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error listing providers", ex, "Controller");
+                _logger.LogError(ex, "Error listing providers");
                 return View("Error");
             }
         }
 
-        public ActionResult Details(int id)
+        public IActionResult Details(int id)
         {
-            LoggingHelper.LogInfo($"Viewing provider details for ID: {id}", "Controller");
+            _logger.LogInformation("Viewing provider details for ID: {ProviderId}", id);
 
             try
             {
                 var provider = _providerService.GetProviderById(id);
                 if (provider == null)
                 {
-                    return HttpNotFound();
+                    return NotFound();
                 }
                 return View(provider);
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error viewing provider details for ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error viewing provider details for ID: {ProviderId}", id);
                 return View("Error");
             }
         }
 
         [HttpGet]
-        public ActionResult Create()
+        public IActionResult Create()
         {
-            LoggingHelper.LogInfo("Displaying provider create form", "Controller");
+            _logger.LogInformation("Displaying provider create form");
             return View(new Provider());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Provider provider)
+        public IActionResult Create(Provider provider)
         {
-            LoggingHelper.LogInfo("Creating new provider", "Controller");
+            _logger.LogInformation("Creating new provider");
 
             try
             {
@@ -72,12 +73,12 @@ namespace HealthClaimsProcessor.Web.Controllers
                 }
 
                 int newId = _providerService.CreateProvider(provider);
-                LoggingHelper.LogInfo($"Provider created with ID: {newId}", "Controller");
+                _logger.LogInformation("Provider created with ID: {ProviderId}", newId);
                 return RedirectToAction("Details", new { id = newId });
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error creating provider", ex, "Controller");
+                _logger.LogError(ex, "Error creating provider");
                 ModelState.AddModelError("", ex.Message);
                 return View(provider);
             }

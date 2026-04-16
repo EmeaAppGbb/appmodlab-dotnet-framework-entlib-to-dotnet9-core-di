@@ -1,23 +1,24 @@
-using System;
-using System.Web.Mvc;
-using HealthClaimsProcessor.Core.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
-using HealthClaimsProcessor.Core.Services;
 
 namespace HealthClaimsProcessor.Web.Controllers
 {
     public class PatientController : Controller
     {
-        private readonly PatientService _patientService;
+        private readonly IPatientService _patientService;
+        private readonly ILogger<PatientController> _logger;
 
-        public PatientController(PatientService patientService)
+        public PatientController(IPatientService patientService, ILogger<PatientController> logger)
         {
             _patientService = patientService;
+            _logger = logger;
         }
 
-        public ActionResult Index()
+        public IActionResult Index()
         {
-            LoggingHelper.LogInfo("Listing all patients", "Controller");
+            _logger.LogInformation("Listing all patients");
 
             try
             {
@@ -26,43 +27,43 @@ namespace HealthClaimsProcessor.Web.Controllers
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error listing patients", ex, "Controller");
+                _logger.LogError(ex, "Error listing patients");
                 return View("Error");
             }
         }
 
-        public ActionResult Details(int id)
+        public IActionResult Details(int id)
         {
-            LoggingHelper.LogInfo($"Viewing patient details for ID: {id}", "Controller");
+            _logger.LogInformation("Viewing patient details for ID: {PatientId}", id);
 
             try
             {
                 var patient = _patientService.GetPatientById(id);
                 if (patient == null)
                 {
-                    return HttpNotFound();
+                    return NotFound();
                 }
                 return View(patient);
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error viewing patient details for ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error viewing patient details for ID: {PatientId}", id);
                 return View("Error");
             }
         }
 
         [HttpGet]
-        public ActionResult Create()
+        public IActionResult Create()
         {
-            LoggingHelper.LogInfo("Displaying patient create form", "Controller");
+            _logger.LogInformation("Displaying patient create form");
             return View(new Patient());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Patient patient)
+        public IActionResult Create(Patient patient)
         {
-            LoggingHelper.LogInfo("Creating new patient", "Controller");
+            _logger.LogInformation("Creating new patient");
 
             try
             {
@@ -72,43 +73,43 @@ namespace HealthClaimsProcessor.Web.Controllers
                 }
 
                 int newId = _patientService.CreatePatient(patient);
-                LoggingHelper.LogInfo($"Patient created with ID: {newId}", "Controller");
+                _logger.LogInformation("Patient created with ID: {PatientId}", newId);
                 return RedirectToAction("Details", new { id = newId });
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error creating patient", ex, "Controller");
+                _logger.LogError(ex, "Error creating patient");
                 ModelState.AddModelError("", ex.Message);
                 return View(patient);
             }
         }
 
         [HttpGet]
-        public ActionResult Edit(int id)
+        public IActionResult Edit(int id)
         {
-            LoggingHelper.LogInfo($"Displaying edit form for patient ID: {id}", "Controller");
+            _logger.LogInformation("Displaying edit form for patient ID: {PatientId}", id);
 
             try
             {
                 var patient = _patientService.GetPatientById(id);
                 if (patient == null)
                 {
-                    return HttpNotFound();
+                    return NotFound();
                 }
                 return View(patient);
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error loading edit form for patient ID: {id}", ex, "Controller");
+                _logger.LogError(ex, "Error loading edit form for patient ID: {PatientId}", id);
                 return View("Error");
             }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Patient patient)
+        public IActionResult Edit(Patient patient)
         {
-            LoggingHelper.LogInfo($"Updating patient ID: {patient.PatientId}", "Controller");
+            _logger.LogInformation("Updating patient ID: {PatientId}", patient.PatientId);
 
             try
             {
@@ -118,12 +119,12 @@ namespace HealthClaimsProcessor.Web.Controllers
                 }
 
                 _patientService.UpdatePatient(patient);
-                LoggingHelper.LogInfo($"Patient updated with ID: {patient.PatientId}", "Controller");
+                _logger.LogInformation("Patient updated with ID: {PatientId}", patient.PatientId);
                 return RedirectToAction("Details", new { id = patient.PatientId });
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error updating patient ID: {patient.PatientId}", ex, "Controller");
+                _logger.LogError(ex, "Error updating patient ID: {PatientId}", patient.PatientId);
                 ModelState.AddModelError("", ex.Message);
                 return View(patient);
             }
