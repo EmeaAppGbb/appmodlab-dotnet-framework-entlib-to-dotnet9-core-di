@@ -1,0 +1,88 @@
+# Step 03: Migration Plan - Phased EntLib Removal
+
+## Phase 1: Project Structure Migration
+1. Create new .NET 9 SDK-style project files replacing legacy .csproj
+2. Create new solution structure with HealthClaimsProcessor.Core and HealthClaimsProcessor.Web
+3. Add NuGet package references for modern equivalents
+4. Create Program.cs replacing Global.asax
+5. Create appsettings.json replacing Web.config EntLib sections
+
+## Phase 2: Logging Migration (Step 04)
+1. Add Serilog NuGet packages to both projects
+2. Replace LoggingHelper static class with ILogger<T> pattern
+3. Inject ILogger<T> into all repositories, services, and controllers
+4. Update all logging calls to use ILogger methods
+5. Configure Serilog in Program.cs with Console and File sinks
+6. Remove EntLib Logging references
+
+## Phase 3: Data Access Migration (Step 05)
+1. Add Entity Framework Core packages
+2. Create HealthClaimsDbContext with DbSets for all entities
+3. Configure entity mappings (table names, relationships, column types)
+4. Rewrite repositories to use EF Core instead of stored procedures
+5. Add repository interfaces (IClaimRepository, IPatientRepository, etc.)
+6. Remove DatabaseFactory and EntLib Data references
+
+## Phase 4: Exception Handling Migration (Step 06)
+1. Remove ExceptionManager and ExceptionPolicyFactory from all services
+2. Replace EntLib exception policies with standard try/catch + ILogger
+3. Replace EntLibExceptionFilter with ASP.NET Core exception handling middleware
+4. Add global exception handler in Program.cs
+5. Remove EntLib ExceptionHandling references
+
+## Phase 5: Validation Migration (Part of Steps 04-06)
+1. Replace EntLib validation attributes with System.ComponentModel.DataAnnotations
+2. Remove ClaimValidators.cs (use ModelState.IsValid in controllers)
+3. Update services to use DataAnnotations validation
+4. Remove EntLib Validation references
+
+## Phase 6: DI Container Setup (Step 07)
+1. Remove Unity container configuration
+2. Configure built-in .NET Core DI in Program.cs
+3. Register all repositories and services
+4. Configure EF Core DbContext registration
+5. Configure Serilog registration
+6. Remove Unity NuGet packages
+
+## Phase 7: Build & Validate (Step 08)
+1. Build solution and fix any remaining compilation errors
+2. Verify no EntLib references remain in any project file
+3. Verify no Microsoft.Practices namespace imports remain
+4. Verify all services are properly registered in DI
+5. Document migration results
+
+## Files to Create
+- HealthClaimsProcessor.Web/Program.cs
+- HealthClaimsProcessor.Web/appsettings.json
+- HealthClaimsProcessor.Core/Data/HealthClaimsDbContext.cs
+- HealthClaimsProcessor.Core/Interfaces/IClaimRepository.cs
+- HealthClaimsProcessor.Core/Interfaces/IPatientRepository.cs
+- HealthClaimsProcessor.Core/Interfaces/IPaymentRepository.cs
+- HealthClaimsProcessor.Core/Interfaces/IProviderRepository.cs
+- HealthClaimsProcessor.Core/Interfaces/IClaimService.cs
+- HealthClaimsProcessor.Core/Interfaces/IPatientService.cs
+- HealthClaimsProcessor.Core/Interfaces/IPaymentService.cs
+- HealthClaimsProcessor.Core/Interfaces/IProviderService.cs
+- HealthClaimsProcessor.Web/Middleware/GlobalExceptionHandler.cs
+
+## Files to Remove
+- HealthClaimsProcessor.Core/Logging/LoggingHelper.cs
+- HealthClaimsProcessor.Core/DataAccess/DatabaseFactory.cs
+- HealthClaimsProcessor.Core/Validation/ClaimValidators.cs
+- HealthClaimsProcessor.Web/App_Start/UnityConfig.cs
+- HealthClaimsProcessor.Web/App_Start/FilterConfig.cs
+- HealthClaimsProcessor.Web/App_Start/BundleConfig.cs
+- HealthClaimsProcessor.Web/App_Start/RouteConfig.cs
+- HealthClaimsProcessor.Web/Filters/EntLibExceptionFilter.cs
+- HealthClaimsProcessor.Web/Global.asax
+- HealthClaimsProcessor.Web/Global.asax.cs
+- All packages.config files
+- packages/ directory (NuGet packages folder)
+
+## Files to Modify
+- All .csproj files (convert to SDK-style)
+- HealthClaimsProcessor.sln (update project references)
+- All model files (replace EntLib validators with DataAnnotations)
+- All repository files (rewrite for EF Core)
+- All service files (remove EntLib exception handling, add ILogger)
+- All controller files (update base class, add ILogger)
