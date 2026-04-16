@@ -1,29 +1,24 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.Practices.EnterpriseLibrary.Common.Configuration;
-using Microsoft.Practices.EnterpriseLibrary.ExceptionHandling;
-using Microsoft.Practices.EnterpriseLibrary.Validation;
-using HealthClaimsProcessor.Core.DataAccess;
-using HealthClaimsProcessor.Core.Logging;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.Services
 {
     public class PatientService
     {
-        private readonly PatientRepository _patientRepository;
-        private readonly ExceptionManager _exceptionManager;
+        private readonly IPatientRepository _patientRepository;
+        private readonly ILogger<PatientService> _logger;
 
-        public PatientService(PatientRepository patientRepository)
+        public PatientService(IPatientRepository patientRepository, ILogger<PatientService> logger)
         {
             _patientRepository = patientRepository;
-            var factory = new ExceptionPolicyFactory(new SystemConfigurationSource());
-            _exceptionManager = factory.CreateManager();
+            _logger = logger;
         }
 
         public List<Patient> GetAllPatients()
         {
-            LoggingHelper.LogInfo("Getting all patients", "Service");
+            _logger.LogInformation("Getting all patients");
 
             try
             {
@@ -31,24 +26,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error retrieving all patients", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return new List<Patient>();
+                _logger.LogError(ex, "Error retrieving all patients");
+                throw;
             }
         }
 
         public Patient GetPatientById(int patientId)
         {
-            LoggingHelper.LogInfo($"Getting patient by ID: {patientId}", "Service");
+            _logger.LogInformation("Getting patient by ID: {PatientId}", patientId);
 
             try
             {
@@ -56,116 +41,73 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error retrieving patient with ID: {patientId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return null;
+                _logger.LogError(ex, "Error retrieving patient with ID: {PatientId}", patientId);
+                throw;
             }
         }
 
         public int CreatePatient(Patient patient)
         {
-            LoggingHelper.LogInfo("Creating new patient", "Service");
+            _logger.LogInformation("Creating new patient");
 
             try
             {
-                var validator = ValidationFactory.CreateValidator<Patient>();
-                var validationResults = validator.Validate(patient);
-                if (!validationResults.IsValid)
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(patient, new ValidationContext(patient), validationResults, true))
                 {
-                    var messages = new List<string>();
-                    foreach (var result in validationResults)
-                    {
-                        messages.Add(result.Message);
-                    }
+                    var messages = validationResults.Select(r => r.ErrorMessage).ToList();
                     string errorMessage = "Patient validation failed: " + string.Join("; ", messages);
-                    LoggingHelper.LogWarning(errorMessage, "Service");
-                    throw new ValidationException(errorMessage);
+                    _logger.LogWarning(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
 
                 patient.CreatedDate = DateTime.Now;
                 patient.IsActive = true;
 
                 int newId = _patientRepository.InsertPatient(patient);
-                LoggingHelper.LogInfo($"Patient created successfully with ID: {newId}", "Service");
+                _logger.LogInformation("Patient created successfully with ID: {PatientId}", newId);
                 return newId;
             }
-            catch (ValidationException)
+            catch (InvalidOperationException)
             {
                 throw;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error creating patient", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return -1;
+                _logger.LogError(ex, "Error creating patient");
+                throw;
             }
         }
 
         public void UpdatePatient(Patient patient)
         {
-            LoggingHelper.LogInfo($"Updating patient with ID: {patient.PatientId}", "Service");
+            _logger.LogInformation("Updating patient with ID: {PatientId}", patient.PatientId);
 
             try
             {
-                var updateValidator = ValidationFactory.CreateValidator<Patient>();
-                var validationResults = updateValidator.Validate(patient);
-                if (!validationResults.IsValid)
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(patient, new ValidationContext(patient), validationResults, true))
                 {
-                    var messages = new List<string>();
-                    foreach (var result in validationResults)
-                    {
-                        messages.Add(result.Message);
-                    }
+                    var messages = validationResults.Select(r => r.ErrorMessage).ToList();
                     string errorMessage = "Patient validation failed: " + string.Join("; ", messages);
-                    LoggingHelper.LogWarning(errorMessage, "Service");
-                    throw new ValidationException(errorMessage);
+                    _logger.LogWarning(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
 
-                patient.ModifiedDate= DateTime.Now;
+                patient.ModifiedDate = DateTime.Now;
 
                 _patientRepository.UpdatePatient(patient);
-                LoggingHelper.LogInfo($"Patient updated successfully with ID: {patient.PatientId}", "Service");
+                _logger.LogInformation("Patient updated successfully with ID: {PatientId}", patient.PatientId);
             }
-            catch (ValidationException)
+            catch (InvalidOperationException)
             {
                 throw;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error updating patient with ID: {patient.PatientId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
+                _logger.LogError(ex, "Error updating patient with ID: {PatientId}", patient.PatientId);
+                throw;
             }
-        }
-
-        private class ValidationException : Exception
-        {
-            public ValidationException(string message) : base(message) { }
         }
     }
 }

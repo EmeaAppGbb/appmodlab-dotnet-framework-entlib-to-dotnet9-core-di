@@ -1,30 +1,26 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.Practices.EnterpriseLibrary.Common.Configuration;
-using Microsoft.Practices.EnterpriseLibrary.ExceptionHandling;
-using Microsoft.Practices.EnterpriseLibrary.Validation;
-using HealthClaimsProcessor.Core.DataAccess;
-using HealthClaimsProcessor.Core.Logging;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.Services
 {
     public class PaymentService
     {
-        private readonly PaymentRepository _paymentRepository;
-        private readonly ClaimRepository _claimRepository;
-        private readonly ExceptionManager _exceptionManager;
+        private readonly IPaymentRepository _paymentRepository;
+        private readonly IClaimRepository _claimRepository;
+        private readonly ILogger<PaymentService> _logger;
 
-        public PaymentService(PaymentRepository paymentRepository, ClaimRepository claimRepository)
+        public PaymentService(IPaymentRepository paymentRepository, IClaimRepository claimRepository, ILogger<PaymentService> logger)
         {
             _paymentRepository = paymentRepository;
             _claimRepository = claimRepository;
-            _exceptionManager = new ExceptionPolicyFactory(new SystemConfigurationSource()).CreateManager();
+            _logger = logger;
         }
 
         public List<Payment> GetAllPayments()
         {
-            LoggingHelper.LogInfo("Getting all payments", "Service");
+            _logger.LogInformation("Getting all payments");
 
             try
             {
@@ -32,24 +28,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error retrieving all payments", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return new List<Payment>();
+                _logger.LogError(ex, "Error retrieving all payments");
+                throw;
             }
         }
 
         public Payment GetPaymentById(int paymentId)
         {
-            LoggingHelper.LogInfo($"Getting payment by ID: {paymentId}", "Service");
+            _logger.LogInformation("Getting payment by ID: {PaymentId}", paymentId);
 
             try
             {
@@ -57,42 +43,26 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error retrieving payment with ID: {paymentId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return null;
+                _logger.LogError(ex, "Error retrieving payment with ID: {PaymentId}", paymentId);
+                throw;
             }
         }
 
         public int ProcessPayment(Payment payment)
         {
-            LoggingHelper.LogInfo($"Processing payment for claim ID: {payment.ClaimId}", "Service");
+            _logger.LogInformation("Processing payment for claim ID: {ClaimId}", payment.ClaimId);
 
             try
             {
-                var validator = ValidationFactory.CreateValidator<Payment>();
-                var validationResults = validator.Validate(payment);
-                if (!validationResults.IsValid)
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(payment, new ValidationContext(payment), validationResults, true))
                 {
-                    var messages = new List<string>();
-                    foreach (var result in validationResults)
-                    {
-                        messages.Add(result.Message);
-                    }
+                    var messages = validationResults.Select(r => r.ErrorMessage).ToList();
                     string errorMessage = "Payment validation failed: " + string.Join("; ", messages);
-                    LoggingHelper.LogWarning(errorMessage, "Service");
-                    throw new ValidationException(errorMessage);
+                    _logger.LogWarning(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
 
-                // Verify the claim exists and is in an approved status
                 var claim = _claimRepository.GetClaimById(payment.ClaimId);
                 if (claim == null)
                 {
@@ -105,26 +75,20 @@ namespace HealthClaimsProcessor.Core.Services
                         $"Claim with ID {payment.ClaimId} is not in an approved status. Current status: {claim.Status}");
                 }
 
-                // Generate payment number
                 payment.PaymentNumber = GeneratePaymentNumber();
                 payment.CreatedDate = DateTime.Now;
                 payment.PaymentStatus = "Processed";
 
                 int paymentId = _paymentRepository.InsertPayment(payment);
 
-                // Update claim status to Paid
-                _claimRepository.UpdateClaimStatus(payment.ClaimId, ClaimStatus.Paid, "PaymentService", 
+                _claimRepository.UpdateClaimStatus(payment.ClaimId, ClaimStatus.Paid, "PaymentService",
                     $"Payment processed. PaymentNumber: {payment.PaymentNumber}");
 
-                LoggingHelper.LogInfo(
-                    $"Payment processed successfully with ID: {paymentId}, PaymentNumber: {payment.PaymentNumber}", 
-                    "Service");
+                _logger.LogInformation(
+                    "Payment processed successfully with ID: {PaymentId}, PaymentNumber: {PaymentNumber}",
+                    paymentId, payment.PaymentNumber);
 
                 return paymentId;
-            }
-            catch (ValidationException)
-            {
-                throw;
             }
             catch (InvalidOperationException)
             {
@@ -132,24 +96,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error processing payment for claim ID: {payment.ClaimId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return -1;
+                _logger.LogError(ex, "Error processing payment for claim ID: {ClaimId}", payment.ClaimId);
+                throw;
             }
         }
 
         public void ClearPayment(int paymentId, string modifiedBy)
         {
-            LoggingHelper.LogInfo($"Clearing payment with ID: {paymentId}", "Service");
+            _logger.LogInformation("Clearing payment with ID: {PaymentId}", paymentId);
 
             try
             {
@@ -166,7 +120,7 @@ namespace HealthClaimsProcessor.Core.Services
                 }
 
                 _paymentRepository.UpdatePaymentStatus(paymentId, "Cleared", DateTime.Now, modifiedBy);
-                LoggingHelper.LogInfo($"Payment with ID: {paymentId} cleared successfully", "Service");
+                _logger.LogInformation("Payment with ID: {PaymentId} cleared successfully", paymentId);
             }
             catch (InvalidOperationException)
             {
@@ -174,27 +128,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error clearing payment with ID: {paymentId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
+                _logger.LogError(ex, "Error clearing payment with ID: {PaymentId}", paymentId);
+                throw;
             }
         }
 
         private string GeneratePaymentNumber()
         {
             return $"PAY-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
-        }
-
-        private class ValidationException : Exception
-        {
-            public ValidationException(string message) : base(message) { }
         }
     }
 }

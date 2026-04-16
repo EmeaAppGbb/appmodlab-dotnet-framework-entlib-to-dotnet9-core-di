@@ -1,29 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Practices.EnterpriseLibrary.Common.Configuration;
-using Microsoft.Practices.EnterpriseLibrary.ExceptionHandling;
-using Microsoft.Practices.EnterpriseLibrary.Validation;
-using HealthClaimsProcessor.Core.DataAccess;
-using HealthClaimsProcessor.Core.Logging;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.Services
 {
     public class ClaimService
     {
-        private readonly ClaimRepository _claimRepository;
-        private readonly ExceptionManager _exceptionManager;
+        private readonly IClaimRepository _claimRepository;
+        private readonly ILogger<ClaimService> _logger;
 
-        public ClaimService(ClaimRepository claimRepository)
+        public ClaimService(IClaimRepository claimRepository, ILogger<ClaimService> logger)
         {
             _claimRepository = claimRepository;
-            _exceptionManager = new ExceptionPolicyFactory(new SystemConfigurationSource()).CreateManager();
+            _logger = logger;
         }
 
         public List<Claim> GetAllClaims()
         {
-            LoggingHelper.LogInfo("Getting all claims", "Service");
+            _logger.LogInformation("Getting all claims");
 
             try
             {
@@ -31,24 +26,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error retrieving all claims", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return new List<Claim>();
+                _logger.LogError(ex, "Error retrieving all claims");
+                throw;
             }
         }
 
         public Claim GetClaimById(int claimId)
         {
-            LoggingHelper.LogInfo($"Getting claim by ID: {claimId}", "Service");
+            _logger.LogInformation("Getting claim by ID: {ClaimId}", claimId);
 
             try
             {
@@ -63,24 +48,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error retrieving claim with ID: {claimId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return null;
+                _logger.LogError(ex, "Error retrieving claim with ID: {ClaimId}", claimId);
+                throw;
             }
         }
 
         public List<Claim> GetClaimsByPatientId(int patientId)
         {
-            LoggingHelper.LogInfo($"Getting claims for patient ID: {patientId}", "Service");
+            _logger.LogInformation("Getting claims for patient ID: {PatientId}", patientId);
 
             try
             {
@@ -88,42 +63,26 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error retrieving claims for patient ID: {patientId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return new List<Claim>();
+                _logger.LogError(ex, "Error retrieving claims for patient ID: {PatientId}", patientId);
+                throw;
             }
         }
 
         public int SubmitClaim(Claim claim)
         {
-            LoggingHelper.LogInfo("Submitting new claim", "Service");
+            _logger.LogInformation("Submitting new claim");
 
             try
             {
-                var validator = ValidationFactory.CreateValidator<Claim>();
-                var validationResults = validator.Validate(claim);
-                if (!validationResults.IsValid)
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(claim, new ValidationContext(claim), validationResults, true))
                 {
-                    var messages = new List<string>();
-                    foreach (var result in validationResults)
-                    {
-                        messages.Add(result.Message);
-                    }
+                    var messages = validationResults.Select(r => r.ErrorMessage).ToList();
                     string errorMessage = "Claim validation failed: " + string.Join("; ", messages);
-                    LoggingHelper.LogWarning(errorMessage, "Service");
-                    throw new ValidationException(errorMessage);
+                    _logger.LogWarning(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
 
-                // Calculate TotalChargeAmount from line items
                 if (claim.LineItems != null && claim.LineItems.Any())
                 {
                     foreach (var lineItem in claim.LineItems)
@@ -139,7 +98,6 @@ namespace HealthClaimsProcessor.Core.Services
 
                 int claimId = _claimRepository.InsertClaim(claim);
 
-                // Insert line items
                 if (claim.LineItems != null)
                 {
                     foreach (var lineItem in claim.LineItems)
@@ -149,33 +107,23 @@ namespace HealthClaimsProcessor.Core.Services
                     }
                 }
 
-                LoggingHelper.LogInfo($"Claim submitted successfully with ID: {claimId}, ClaimNumber: {claim.ClaimNumber}", "Service");
+                _logger.LogInformation("Claim submitted successfully with ID: {ClaimId}, ClaimNumber: {ClaimNumber}", claimId, claim.ClaimNumber);
                 return claimId;
             }
-            catch (ValidationException)
+            catch (InvalidOperationException)
             {
                 throw;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error submitting claim", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return -1;
+                _logger.LogError(ex, "Error submitting claim");
+                throw;
             }
         }
 
         public void AdjudicateClaim(int claimId, ClaimStatus status, string processedBy, string adjudicationNotes)
         {
-            LoggingHelper.LogInfo($"Adjudicating claim ID: {claimId} with status: {status}", "Service");
+            _logger.LogInformation("Adjudicating claim ID: {ClaimId} with status: {Status}", claimId, status);
 
             try
             {
@@ -192,7 +140,7 @@ namespace HealthClaimsProcessor.Core.Services
                 }
 
                 _claimRepository.UpdateClaimStatus(claimId, status, processedBy, adjudicationNotes);
-                LoggingHelper.LogInfo($"Claim ID: {claimId} adjudicated successfully with status: {status}", "Service");
+                _logger.LogInformation("Claim ID: {ClaimId} adjudicated successfully with status: {Status}", claimId, status);
             }
             catch (InvalidOperationException)
             {
@@ -200,22 +148,9 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error adjudicating claim ID: {claimId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
+                _logger.LogError(ex, "Error adjudicating claim ID: {ClaimId}", claimId);
+                throw;
             }
-        }
-
-        private class ValidationException : Exception
-        {
-            public ValidationException(string message) : base(message) { }
         }
     }
 }

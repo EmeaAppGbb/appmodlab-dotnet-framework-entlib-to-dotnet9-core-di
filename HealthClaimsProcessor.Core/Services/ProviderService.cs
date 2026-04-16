@@ -1,28 +1,24 @@
-using System;
-using System.Collections.Generic;
-using Microsoft.Practices.EnterpriseLibrary.Common.Configuration;
-using Microsoft.Practices.EnterpriseLibrary.ExceptionHandling;
-using Microsoft.Practices.EnterpriseLibrary.Validation;
-using HealthClaimsProcessor.Core.DataAccess;
-using HealthClaimsProcessor.Core.Logging;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Logging;
+using HealthClaimsProcessor.Core.Interfaces;
 using HealthClaimsProcessor.Core.Models;
 
 namespace HealthClaimsProcessor.Core.Services
 {
     public class ProviderService
     {
-        private readonly ProviderRepository _providerRepository;
-        private readonly ExceptionManager _exceptionManager;
+        private readonly IProviderRepository _providerRepository;
+        private readonly ILogger<ProviderService> _logger;
 
-        public ProviderService(ProviderRepository providerRepository)
+        public ProviderService(IProviderRepository providerRepository, ILogger<ProviderService> logger)
         {
             _providerRepository = providerRepository;
-            _exceptionManager = new ExceptionPolicyFactory(new SystemConfigurationSource()).CreateManager();
+            _logger = logger;
         }
 
         public List<Provider> GetAllProviders()
         {
-            LoggingHelper.LogInfo("Getting all providers", "Service");
+            _logger.LogInformation("Getting all providers");
 
             try
             {
@@ -30,24 +26,14 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error retrieving all providers", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return new List<Provider>();
+                _logger.LogError(ex, "Error retrieving all providers");
+                throw;
             }
         }
 
         public Provider GetProviderById(int providerId)
         {
-            LoggingHelper.LogInfo($"Getting provider by ID: {providerId}", "Service");
+            _logger.LogInformation("Getting provider by ID: {ProviderId}", providerId);
 
             try
             {
@@ -55,72 +41,42 @@ namespace HealthClaimsProcessor.Core.Services
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError($"Error retrieving provider with ID: {providerId}", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return null;
+                _logger.LogError(ex, "Error retrieving provider with ID: {ProviderId}", providerId);
+                throw;
             }
         }
 
         public int CreateProvider(Provider provider)
         {
-            LoggingHelper.LogInfo("Creating new provider", "Service");
+            _logger.LogInformation("Creating new provider");
 
             try
             {
-                var validator = ValidationFactory.CreateValidator<Provider>();
-                var validationResults = validator.Validate(provider);
-                if (!validationResults.IsValid)
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(provider, new ValidationContext(provider), validationResults, true))
                 {
-                    var messages = new List<string>();
-                    foreach (var result in validationResults)
-                    {
-                        messages.Add(result.Message);
-                    }
+                    var messages = validationResults.Select(r => r.ErrorMessage).ToList();
                     string errorMessage = "Provider validation failed: " + string.Join("; ", messages);
-                    LoggingHelper.LogWarning(errorMessage, "Service");
-                    throw new ValidationException(errorMessage);
+                    _logger.LogWarning(errorMessage);
+                    throw new InvalidOperationException(errorMessage);
                 }
 
                 provider.CreatedDate = DateTime.Now;
                 provider.IsActive = true;
 
                 int newId = _providerRepository.InsertProvider(provider);
-                LoggingHelper.LogInfo($"Provider created successfully with ID: {newId}", "Service");
+                _logger.LogInformation("Provider created successfully with ID: {ProviderId}", newId);
                 return newId;
             }
-            catch (ValidationException)
+            catch (InvalidOperationException)
             {
                 throw;
             }
             catch (Exception ex)
             {
-                LoggingHelper.LogError("Error creating provider", ex, "Service");
-
-                Exception exceptionToThrow;
-                if (_exceptionManager.HandleException(ex, "Service Layer Policy", out exceptionToThrow))
-                {
-                    if (exceptionToThrow != null)
-                        throw exceptionToThrow;
-                    else
-                        throw;
-                }
-
-                return -1;
+                _logger.LogError(ex, "Error creating provider");
+                throw;
             }
-        }
-
-        private class ValidationException : Exception
-        {
-            public ValidationException(string message) : base(message) { }
         }
     }
 }

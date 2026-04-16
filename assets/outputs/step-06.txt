@@ -1,0 +1,44 @@
+# Step 06: Migrate Exception Handling - EntLib Exception Handling Block → Standard try/catch + ILogger
+
+## Changes Made
+
+### Rewritten Services (all 4)
+- ClaimService.cs - Removed ExceptionManager/ExceptionPolicyFactory/SystemConfigurationSource
+- PatientService.cs - Removed ExceptionManager/ExceptionPolicyFactory/SystemConfigurationSource
+- PaymentService.cs - Removed ExceptionManager/ExceptionPolicyFactory/SystemConfigurationSource
+- ProviderService.cs - Removed ExceptionManager/ExceptionPolicyFactory/SystemConfigurationSource
+
+### Key Changes per Service
+- Constructor: Now accepts interface-typed repository + ILogger<T> via DI (was: concrete repo, created ExceptionManager)
+- Exception handling: Standard try/catch with _logger.LogError() (was: ExceptionManager.HandleException with named policies)
+- Validation: System.ComponentModel.DataAnnotations Validator.TryValidateObject() (was: EntLib ValidationFactory.CreateValidator<T>())
+- Removed: Private ValidationException inner class (now uses InvalidOperationException)
+- Removed: LoggingHelper static calls (now uses injected ILogger<T>)
+
+### Exception Handling Pattern (Before → After)
+Before:
+  catch (Exception ex) {
+      _exceptionManager.HandleException(ex, "Data Access Policy", out exceptionToThrow);
+      if (exceptionToThrow != null) throw exceptionToThrow; else throw;
+  }
+
+After:
+  catch (Exception ex) {
+      _logger.LogError(ex, "Error message with {StructuredParam}", param);
+      throw;
+  }
+
+### Validation Pattern (Before → After)
+Before:
+  var validator = ValidationFactory.CreateValidator<Claim>();
+  var results = validator.Validate(claim);
+
+After:
+  var results = new List<ValidationResult>();
+  Validator.TryValidateObject(claim, new ValidationContext(claim), results, true);
+
+### Dependencies Removed
+- Microsoft.Practices.EnterpriseLibrary.ExceptionHandling
+- Microsoft.Practices.EnterpriseLibrary.Common.Configuration
+- Microsoft.Practices.EnterpriseLibrary.Validation
+- HealthClaimsProcessor.Core.Logging (LoggingHelper static calls)
