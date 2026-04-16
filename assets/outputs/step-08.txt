@@ -1,0 +1,35 @@
+# Step 08: Build & Validate
+
+## Build Result
+✅ Build succeeded (dotnet build) — 0 errors, 0 warnings
+
+## Validation Checks
+✅ No Microsoft.Practices.EnterpriseLibrary references in any .cs file
+✅ No System.Web.Mvc references in any .cs file
+✅ All controllers use Microsoft.AspNetCore.Mvc
+✅ All services use ILogger<T> instead of LoggingHelper static calls
+✅ All repositories use EF Core DbContext instead of EntLib Database
+✅ DI registrations use interface→implementation pattern
+✅ DbContext registered with UseSqlServer connection string
+✅ Serilog configured as logging provider
+
+## Architecture Summary (After Migration)
+- Framework: .NET 9.0 (from .NET Framework 4.8)
+- DI: ASP.NET Core native (from Unity)
+- Logging: Serilog via ILogger<T> (from EntLib Logging Block + LoggingHelper static)
+- Data Access: EF Core 9 DbContext (from EntLib DAAB + stored procedures)
+- Exception Handling: Standard try/catch + ILogger (from EntLib Exception Handling Block)
+- Validation: System.ComponentModel.DataAnnotations (from EntLib Validation Block)
+- Controllers: ASP.NET Core MVC Controller (from System.Web.Mvc)
+
+## Files Changed Across All Steps
+- 4 new interfaces (repository): IClaimRepository, IPatientRepository, IPaymentRepository, IProviderRepository
+- 4 new interfaces (service): IClaimService, IPatientService, IPaymentService, IProviderService
+- 1 new DbContext: HealthClaimsDbContext
+- 4 rewritten repositories (EF Core)
+- 4 rewritten services (ILogger, DataAnnotations validation)
+- 5 rewritten controllers (ASP.NET Core)
+- 1 new Program.cs (ASP.NET Core entry point)
+- 1 new appsettings.json
+- 1 new _ViewImports.cshtml
+- 15+ deleted legacy files (Global.asax, Web.config, packages.config, App_Start/*, etc.)
