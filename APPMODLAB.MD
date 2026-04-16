@@ -8,7 +8,7 @@ services: ["Azure App Service", "Azure SQL Database", "Azure Redis Cache", "Appl
 languages: ["C#", ".NET"]
 frameworks: ["ASP.NET Core", "Entity Framework Core", "Serilog"]
 modernizationTools: []
-agenticTools: []
+agenticTools: ["GitHub Copilot CLI"]
 tags: ["enterprise-library", "dependency-injection", "logging", "ef-core", "dotnet-9"]
 extensions: ["github.copilot"]
 thumbnail: ""
@@ -68,3 +68,20 @@ Before beginning the migration, verify that the legacy application compiles succ
 
 ### Claims Processing Workflow & Build Requirements
 ![Claims Workflow](assets/screenshots/04-claims-workflow.png)
+
+## Solution
+
+The completed migration is available on the [`solution-final`](../../tree/solution-final) branch with step-by-step tagged commits:
+
+| Tag | Description |
+|-----|-------------|
+| `step-01-explore-legacy` | Analyze legacy EntLib usage across the codebase |
+| `step-02-map-entlib` | Map EntLib patterns to .NET 9 equivalents |
+| `step-03-migration-plan` | Create phased migration plan |
+| `step-04-migrate-logging` | Replace EntLib Logging with Serilog + ILogger<T> |
+| `step-05-migrate-data` | Replace EntLib DAAB with Entity Framework Core 9 |
+| `step-06-migrate-exceptions` | Replace EntLib Exception Handling with try/catch + ILogger |
+| `step-07-setup-di` | Replace Unity with ASP.NET Core native DI |
+| `step-08-build-validate` | Build succeeds with zero errors, all EntLib removed |
+
+Each step output is documented in `assets/outputs/step-NN.txt` on the solution branch.
