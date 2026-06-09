@@ -11,7 +11,7 @@ modernizationTools: []
 agenticTools: ["GitHub Copilot CLI"]
 tags: ["enterprise-library", "dependency-injection", "logging", "ef-core", "dotnet-9"]
 extensions: ["github.copilot"]
-thumbnail: ""
+thumbnail: "https://raw.githubusercontent.com/EmeaAppGbb/appmodlab-dotnet-framework-entlib-to-dotnet9-core-di/main/assets/thumbnail-gpt-image.png"
 video: ""
 version: "1.0.0"
 ---
